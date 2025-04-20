@@ -12,12 +12,13 @@ public class JobDescriptionService {
 
     private final JobDescriptionRepository jobDescriptionRepository;
 
-    public void saveJobDescription(JobDescriptionDto jobDescriptionDto) {
+    public Long saveJobDescription(JobDescriptionDto jobDescriptionDto) {
         JobDescription jobDescription = new JobDescription();
         jobDescription.setTitle(jobDescriptionDto.getTitle());
         jobDescription.setDescription(jobDescriptionDto.getDescription());
         jobDescription.setUploadedBy(jobDescriptionDto.getUploadedBy());
 
-        jobDescriptionRepository.save(jobDescription);
+        JobDescription savedJob = jobDescriptionRepository.save(jobDescription);
+        return savedJob.getId(); // ✅ Return the saved Job Description ID
     }
 }

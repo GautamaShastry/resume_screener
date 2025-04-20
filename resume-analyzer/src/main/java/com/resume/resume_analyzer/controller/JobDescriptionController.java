@@ -7,6 +7,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/job")
 @RequiredArgsConstructor
@@ -16,16 +19,18 @@ public class JobDescriptionController {
     private final JWTUtil jwtUtil;
 
     @PostMapping("/upload")
-    public ResponseEntity<String> uploadJobDescription(
+    public ResponseEntity<Map<String, Object>> uploadJobDescription(
             @RequestBody JobDescriptionDto jobDescriptionDto,
             @RequestHeader("Authorization") String authorizationHeader) {
 
         String email = extractEmailFromAuthHeader(authorizationHeader);
+        jobDescriptionDto.setUploadedBy(email);
 
-        jobDescriptionDto.setUploadedBy(email);  // automatically set uploadedBy field
+        Long jobDescriptionId = jobDescriptionService.saveJobDescription(jobDescriptionDto);
 
-        jobDescriptionService.saveJobDescription(jobDescriptionDto);
-        return ResponseEntity.ok("Job Description Uploaded Successfully!");
+        Map<String, Object> response = new HashMap<>();
+        response.put("jobDescriptionId", jobDescriptionId); // ✅ Put ID in Response
+        return ResponseEntity.ok(response);
     }
 
     private String extractEmailFromAuthHeader(String authHeader) {

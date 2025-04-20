@@ -5,6 +5,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/match")
 public class MatchResultController {
@@ -13,13 +15,14 @@ public class MatchResultController {
     private MatchResultService matchResultService;
 
     @PostMapping("/matchResume")
-    public ResponseEntity<String> matchResume(@RequestParam("resumeId") Long resumeId,
-                                              @RequestParam("jobDescriptionId") Long jobDescriptionId) {
+    public ResponseEntity<Map<String, Object>> matchResume(
+            @RequestParam("resumeId") Long resumeId,
+            @RequestParam("jobDescriptionId") Long jobDescriptionId) {
         try {
-            String result = matchResultService.matchResume(resumeId, jobDescriptionId);
+            Map<String, Object> result = matchResultService.matchResume(resumeId, jobDescriptionId);
             return ResponseEntity.ok(result);
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 }

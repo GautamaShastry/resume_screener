@@ -15,6 +15,7 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
@@ -29,7 +30,7 @@ public class MatchResultService {
 
     private final String AI_SERVICE_URL = "http://localhost:6000/api/analyze";
 
-    public String matchResume(Long resumeId, Long jobDescriptionId) {
+    public Map<String, Object> matchResume(Long resumeId, Long jobDescriptionId) {
         Optional<Resume> resumeOpt = resumeRepository.findById(resumeId);
         Optional<JobDescription> jobDescOpt = jobDescriptionRepository.findById(jobDescriptionId);
 
@@ -68,10 +69,11 @@ public class MatchResultService {
 
             Map<String, Object> aiResponse = response.getBody();
 
+            // Save match result into DB
             MatchResult matchResult = new MatchResult();
             matchResult.setResumeId(resumeId);
             matchResult.setJobDescriptionId(jobDescriptionId);
-            matchResult.setMatchScore(Double.valueOf(aiResponse.get("matchScore").toString()));
+            matchResult.setMatchScore(Double.valueOf(aiResponse.get("accuracy").toString()));
             matchResult.setExtractedSkills(aiResponse.get("skills").toString());
             matchResult.setStrengths(aiResponse.get("strengths").toString());
             matchResult.setWeaknesses(aiResponse.get("weaknesses").toString());
@@ -79,7 +81,14 @@ public class MatchResultService {
 
             matchResultRepository.save(matchResult);
 
-            return "Resume matched successfully with AI score: " + matchResult.getMatchScore();
+            // ✅ Return map to frontend
+            Map<String, Object> responseMap = new HashMap<>();
+            responseMap.put("accuracy", matchResult.getMatchScore());
+            responseMap.put("skills", matchResult.getExtractedSkills());
+            responseMap.put("strengths", matchResult.getStrengths());
+            responseMap.put("weaknesses", matchResult.getWeaknesses());
+
+            return responseMap;
 
         } catch (Exception e) {
             throw new RuntimeException("Error processing resume or AI service: " + e.getMessage());

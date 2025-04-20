@@ -15,7 +15,7 @@ public class ResumeService {
 
     private final ResumeRepository resumeRepository;
 
-    public void saveResume(String uploadedBy, MultipartFile file) {
+    public Long saveResume(String uploadedBy, MultipartFile file) {
         try {
             Resume resume = new Resume();
             resume.setFileName(file.getOriginalFilename());
@@ -23,8 +23,8 @@ public class ResumeService {
             resume.setUploadedBy(uploadedBy);
             resume.setUploadTime(LocalDateTime.now());
 
-            resumeRepository.save(resume);
-
+            Resume savedResume = resumeRepository.save(resume);
+            return savedResume.getId(); // ✅ Return the saved resume ID
         } catch (IOException e) {
             throw new RuntimeException("Failed to save resume", e);
         }
