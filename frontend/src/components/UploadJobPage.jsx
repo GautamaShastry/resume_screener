@@ -2,10 +2,12 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import axios from 'axios';
+import Loading from './Loading';
 
 const UploadJobPage = () => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [isLoading, setIsLoading] = useState(false); // loading state
   const navigate = useNavigate();
 
   const handleUpload = async (e) => {
@@ -13,6 +15,7 @@ const UploadJobPage = () => {
     const token = localStorage.getItem('token');
 
     try {
+      setIsLoading(true); // Set loading state to true
       const response = await axios.post('http://localhost:8000/api/job/upload', { title, description }, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -21,8 +24,12 @@ const UploadJobPage = () => {
       navigate('/match');
     } catch (error) {
       toast.error('Job description upload failed. Please try again.');
+    } finally {
+      setIsLoading(false); // Reset loading state
     }
   };
+
+  if(isLoading) return <Loading />; // Show loading component while uploading
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-start pt-20 bg-gray-100 px-4">

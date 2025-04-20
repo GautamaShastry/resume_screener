@@ -1,8 +1,11 @@
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import axios from 'axios';
+import { useState } from 'react';
+import Loading from './Loading';
 
 const MatchResumePage = () => {
+    const [isLoading, setIsLoading] = useState(false); // loading state
     const navigate = useNavigate();
 
     const handleMatch = async (e) => {
@@ -17,18 +20,23 @@ const MatchResumePage = () => {
         }
 
         try {
-        const response = await axios.post(
-            `http://localhost:8000/api/match/matchResume?resumeId=${resumeId}&jobDescriptionId=${jobDescriptionId}`,
-            {}, // empty body, request is sent as params
-            {
-            headers: { Authorization: `Bearer ${token}` }
-            }
-        );
-        navigate('/result', { state: response.data });
+            setIsLoading(true); // Set loading state to true
+            const response = await axios.post(
+                `http://localhost:8000/api/match/matchResume?resumeId=${resumeId}&jobDescriptionId=${jobDescriptionId}`,
+                {}, // empty body, request is sent as params
+                {
+                headers: { Authorization: `Bearer ${token}` }
+                }
+            );
+            navigate('/result', { state: response.data });
         } catch (error) {
         toast.error('Matching failed. Please try again.');
+        } finally {
+            setIsLoading(false); // Reset loading state
         }
     };
+
+    if(isLoading) return <Loading />; // Show loading component while matching
 
     return (
         <div className="min-h-screen flex flex-col items-center justify-start pt-20 bg-gray-100 px-4">

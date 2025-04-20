@@ -2,23 +2,30 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import Loading from './Loading';
 
 const LoginForm = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [isLoading, setIsLoading] = useState(false); // loading state
     const navigate = useNavigate();
 
     const handleLogin = async (e) => {
         e.preventDefault();
         try {
-        const response = await axios.post('http://localhost:8000/api/auth/login', { email, password });
-        localStorage.setItem('token', response.data.token);
-        toast.success('Login successful!');
-        navigate('/upload-resume');
+            setIsLoading(true); // Set loading state to true
+            const response = await axios.post('http://localhost:8000/api/auth/login', { email, password });
+            localStorage.setItem('token', response.data.token);
+            toast.success('Login successful!');
+            navigate('/upload-resume');
         } catch (error) {
         toast.error('Login failed. Please try again.');
+        } finally {
+            setIsLoading(false); // Reset loading state
         }
     };
+
+    if(isLoading) return <Loading />; // Show loading component while logging in
 
     return (
         <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-start py-12 px-4">

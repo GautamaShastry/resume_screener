@@ -2,9 +2,11 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import axios from 'axios';
+import Loading from './Loading';
 
 const UploadResumePage = () => {
     const [file, setFile] = useState(null);
+    const [isLoading, setIsLoading] = useState(false); // loading state
     const navigate = useNavigate();
 
     const handleUpload = async (e) => {
@@ -19,6 +21,7 @@ const UploadResumePage = () => {
         formData.append('file', file);
 
         try {
+            setIsLoading(true); // Set loading state to true
             const response = await axios.post('http://localhost:8000/api/resume/upload', formData, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -30,8 +33,12 @@ const UploadResumePage = () => {
             navigate('/upload-job');
         } catch (error) {
             toast.error('Resume upload failed. Please try again.');
+        } finally {
+            setIsLoading(false); // Reset loading state
         }
     };
+
+    if(isLoading) return <Loading />; // Show loading component while uploading
 
     return (
         <div className="min-h-screen flex flex-col items-center justify-start pt-20 bg-gray-100 px-4">
