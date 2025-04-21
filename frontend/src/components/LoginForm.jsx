@@ -7,25 +7,25 @@ import Loading from './Loading';
 const LoginForm = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [isLoading, setIsLoading] = useState(false); // loading state
+    const [isLoading, setIsLoading] = useState(false);
     const navigate = useNavigate();
 
     const handleLogin = async (e) => {
         e.preventDefault();
         try {
-            setIsLoading(true); // Set loading state to true
-            const response = await axios.post('http://localhost:8000/api/auth/login', { email, password });
-            localStorage.setItem('token', response.data.token);
-            toast.success('Login successful!');
-            navigate('/upload-resume');
+        setIsLoading(true);
+        const response = await axios.post('http://localhost:8000/api/auth/login', { email, password });
+        localStorage.setItem('token', response.data.token);
+        toast.success('Login successful!');
+        navigate('/upload-resume');
         } catch (error) {
         toast.error('Login failed. Please try again.');
         } finally {
-            setIsLoading(false); // Reset loading state
+        setIsLoading(false);
         }
     };
 
-    if(isLoading) return <Loading />; // Show loading component while logging in
+    if (isLoading) return <Loading />;
 
     return (
         <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-start py-12 px-4">
@@ -40,23 +40,31 @@ const LoginForm = () => {
         <form onSubmit={handleLogin} className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
             <h2 className="text-2xl font-bold text-center mb-6">Login</h2>
 
+            <div className="mb-4">
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">Email <span className='text-red-700'>*</span></label>
             <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="Email"
-            required
-            className="w-full p-3 border border-gray-300 rounded mb-4 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="xyz@example.com"
+                required
+                className="w-full p-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
             />
+            </div>
 
+            <div className="mb-6">
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">Password <span className='text-red-700'>*</span></label>
             <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Password"
-            required
-            className="w-full p-3 border border-gray-300 rounded mb-6 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="123"
+                required
+                className="w-full p-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
             />
+            </div>
 
             <button
             type="submit"
