@@ -28,7 +28,7 @@ public class MatchResultService {
     private final JobDescriptionRepository jobDescriptionRepository;
     private final RestTemplate restTemplate = new RestTemplate();
 
-    private final String AI_SERVICE_URL = "http://localhost:6000/api/analyze";
+    private final String AI_SERVICE_URL = "https://resume-screener-58ds.onrender.com/api/analyze";
 
     public Map<String, Object> matchResume(Long resumeId, Long jobDescriptionId) {
         Optional<Resume> resumeOpt = resumeRepository.findById(resumeId);
