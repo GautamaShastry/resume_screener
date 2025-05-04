@@ -16,7 +16,7 @@ const UploadJobPage = () => {
 
     try {
       setIsLoading(true);
-      const response = await axios.post('http://localhost:8000/api/job/upload', { title, description }, {
+      const response = await axios.post('https://resume-screener-backend-hfz2.onrender.com/api/job/upload', { title, description }, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       localStorage.setItem('jobDescriptionId', response.data.jobDescriptionId);

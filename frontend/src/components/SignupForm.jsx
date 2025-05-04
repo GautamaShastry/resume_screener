@@ -15,7 +15,7 @@ const SignupForm = () => {
         e.preventDefault();
         try {
         setIsLoading(true);
-        await axios.post('http://localhost:8000/api/auth/signup', { name, email, password });
+        await axios.post('https://resume-screener-backend-hfz2.onrender.com/api/auth/signup', { name, email, password });
         toast.success('Signup successful! Please login.');
         navigate('/login');
         } catch (error) {
