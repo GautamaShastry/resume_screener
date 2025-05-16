@@ -1,2 +1,5 @@
 # resume_screener
-TechSur Internship Coding Challenge
+Tech Stack:
+Python Ai service(flask)
+Spring Boot backend service
+React Front end
