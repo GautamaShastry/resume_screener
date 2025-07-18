@@ -21,7 +21,7 @@ An AI-powered resume screening platform that helps recruiters and hiring teams e
 | Frontend        | React.js (Vercel)            |
 | Backend         | Spring Boot (Render)         |
 | AI Scoring      | Python NLP Microservice (Render) |
-| Database        | MySQL (Render)               |
+| Database        | PostgreSQL (Render)               |
 | Authentication  | JWT (Spring Security)        |
 | API Testing     | Postman                      |
 
@@ -34,7 +34,7 @@ An AI-powered resume screening platform that helps recruiters and hiring teams e
 | Frontend (React)    | Vercel        |
 | Backend (Spring Boot) | Render      |
 | AI Scoring Service  | Render        |
-| MySQL Database      | Render        |
+| PostgreSQL Database      | Render        |
 
 ---
 
@@ -47,7 +47,7 @@ Follow these steps to run the project locally:
 - **Java 17+**
 - **Maven**
 - **Node.js 16+**
-- **MySQL** (local or cloud)
+- **PostgreSQL** (local or cloud)
 - **Python 3.x** (for AI scoring microservice)
 - **IntelliJ IDEA** (recommended for backend)
 
@@ -71,7 +71,7 @@ git clone https://github.com/GautamaShastry/resume_screener.git
 
 3. **Set up MySQL Database:**
 
-- Ensure MySQL is running locally or remotely.
+- Ensure PostgreSQL is running locally or remotely.
 - Create the database using the following SQL command:
 
 ```sql
@@ -86,11 +86,10 @@ CREATE DATABASE resume_db;
 - Replace the placeholders with your actual credentials:
 
 ```properties
-spring.datasource.url=jdbc:mysql://localhost:3306/resume_db
-spring.datasource.username=your_mysql_username
-spring.datasource.password=your_mysql_password
+spring.datasource.url=jdbc:postgresql://localhost:5432/resume_db
+spring.datasource.username=your_postgresql_username
+spring.datasource.password=your_postgresql_password
 jwt.secret=your_jwt_secret_key
-ai.service.url=http://localhost:5000/score
 ```
 
 4. **Run the Spring Boot Application:**
