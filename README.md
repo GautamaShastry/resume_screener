@@ -129,3 +129,28 @@ npm run dev
 4. **Access the application:**
 
    The Application will be running locally at: http://localhost:3000/
+
+### 3️⃣ AI Scoring Service Setup (Python – Flask)
+
+This is the Python-based AI microservice responsible for analyzing resumes against job descriptions using sentence embeddings and NLP keyword extraction.
+
+---
+
+### Steps:
+
+1. **Navigate to the AI service folder:**
+
+```bash
+cd ai
+```
+
+2. **Install Python dependencies:**
+
+   ```bash
+   pip install -r requirements.txt
+   ```
+3. **Run the AI scoring service:**
+
+   ```bash
+   python app.py
+   ```
