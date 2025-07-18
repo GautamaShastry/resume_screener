@@ -77,3 +77,30 @@ git clone https://github.com/GautamaShastry/resume_screener.git
 ```sql
 CREATE DATABASE resume_db;
 ```
+
+4. **Configure `application.properties`:**
+
+- Navigate to:  
+  `/src/main/resources/application.properties`
+
+- Replace the placeholders with your actual credentials:
+
+```properties
+spring.datasource.url=jdbc:mysql://localhost:3306/resume_db
+spring.datasource.username=your_mysql_username
+spring.datasource.password=your_mysql_password
+jwt.secret=your_jwt_secret_key
+ai.service.url=http://localhost:5000/score
+```
+
+4. **Run the Spring Boot Application:**
+
+- Locate the file:  
+  `src/main/java/com/your/package/ResumeScreenerApplication.java`
+
+- In IntelliJ IDEA:
+  - Click the **Run** button (green play icon).
+  - Or use the shortcut: **Shift + F10**
+
+- Once running, the backend API will be available at:
+http://localhost:8080/
