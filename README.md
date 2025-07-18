@@ -66,7 +66,7 @@ git clone https://github.com/GautamaShastry/resume_screener.git
 2. **Open in IntelliJ IDEA:**
 
 - Go to **File > Open**.
-- Select the `/backend` folder inside the cloned repository.
+- Select the `/resume_analyzer` folder inside the cloned repository.
 - IntelliJ will recognize it as a Maven project and auto-download dependencies.
 
 3. **Set up MySQL Database:**
@@ -103,3 +103,29 @@ jwt.secret=your_jwt_secret_key
 
 - Once running, the backend API will be available at:
 http://localhost:8080/
+
+### 2️⃣ Frontend Setup (React.js)
+
+### Steps:
+
+1. **Navigate to the frontend folder:**
+
+```bash
+cd frontend
+```
+
+2. **Install dependencies:**
+
+```bash
+npm install
+```
+
+3. **Start the React Development Server:**
+
+```bash
+npm run dev
+```
+
+4. **Access the application:**
+
+   The Application will be running locally at: http://localhost:3000/
