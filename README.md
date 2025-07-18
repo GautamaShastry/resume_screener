@@ -140,17 +140,71 @@ This is the Python-based AI microservice responsible for analyzing resumes again
 
 1. **Navigate to the AI service folder:**
 
-```bash
-cd ai
-```
+  ```bash
+  cd ai
+  ```
 
 2. **Install Python dependencies:**
 
    ```bash
    pip install -r requirements.txt
    ```
+   
 3. **Run the AI scoring service:**
 
    ```bash
    python app.py
    ```
+
+4. **Access the AI score API:**
+
+   The API will be running locally at: http://localhost:6000/api/analyze
+
+
+## 📡 AI Scoring API Endpoint Details
+
+This service provides a single REST API endpoint to analyze resumes against job descriptions and return a match score along with strengths and weaknesses.
+
+---
+
+### 🎯 Endpoint
+
+**POST** `/api/analyze`
+
+---
+
+### 📥 Request Parameters
+
+- **file** (Form-Data):  
+  Upload the resume file (supported formats: PDF or DOCX).
+
+- **jobDescriptionText** (Form-Data):  
+  Paste the job description text directly in the form.
+
+---
+
+### 📤 Example Request (using Postman or similar tools)
+
+- **URL:**  
+  `http://localhost:6000/api/analyze`
+
+- **Method:**  
+  POST
+
+- **Body:**  
+  Form-Data:
+  - `file`: Attach resume file (PDF or DOCX)
+  - `jobDescriptionText`: Paste job description text
+
+---
+
+### 📊 Example Response (JSON)
+
+```json
+{
+  "matchScore": 87.45,
+  "skills": "python, machine learning, data analysis",
+  "strengths": "python, data analysis",
+  "weaknesses": "deep learning, optimization",
+  "accuracy": 87.45
+}
