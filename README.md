@@ -37,3 +37,43 @@ An AI-powered resume screening platform that helps recruiters and hiring teams e
 | MySQL Database      | Render        |
 
 ---
+
+## 🏗️ Local Setup Guide
+
+Follow these steps to run the project locally:
+
+### Prerequisites
+
+- **Java 17+**
+- **Maven**
+- **Node.js 16+**
+- **MySQL** (local or cloud)
+- **Python 3.x** (for AI scoring microservice)
+- **IntelliJ IDEA** (recommended for backend)
+
+---
+
+### 1️⃣ Backend Setup (Spring Boot – IntelliJ)
+
+### Steps:
+
+1. **Clone the repository:**
+
+```bash
+git clone https://github.com/GautamaShastry/resume_screener.git
+```
+
+2. **Open in IntelliJ IDEA:**
+
+- Go to **File > Open**.
+- Select the `/backend` folder inside the cloned repository.
+- IntelliJ will recognize it as a Maven project and auto-download dependencies.
+
+3. **Set up MySQL Database:**
+
+- Ensure MySQL is running locally or remotely.
+- Create the database using the following SQL command:
+
+```sql
+CREATE DATABASE resume_db;
+```
