@@ -104,7 +104,7 @@ jwt.secret=your_jwt_secret_key
 - Once running, the backend API will be available at:
 http://localhost:8080/
 
-### 2️⃣ Frontend Setup (React.js)
+### 2️⃣ Frontend Setup (React.js - VSCode)
 
 ### Steps:
 
