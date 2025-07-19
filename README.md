@@ -256,7 +256,7 @@ This service provides a single REST API endpoint to analyze resumes against job 
 
 ---
 
-## ✅ Contributing
+## ✅ Contributions
 
 Contributions are welcome!  
 Fork the repository, create a feature branch, and submit a pull request.
