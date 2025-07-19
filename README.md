@@ -208,3 +208,68 @@ This service provides a single REST API endpoint to analyze resumes against job 
   "weaknesses": "deep learning, optimization",
   "accuracy": 87.45
 }
+```
+
+## 📦 Deployment Instructions
+
+- **Frontend:**  
+  1. Build the React frontend using:
+
+  ```bash
+  npm run build
+  ```
+
+  2. Deploy the build folder to **Vercel** or any static hosting provider.
+
+- **Backend (Spring Boot):**
+
+  - Package the Spring Boot application as a JAR file using:
+
+  ```bash
+  mvn clean install
+  ```
+
+  Deploy the generated JAR to **Render.com** as a web service.
+
+---
+
+## AI Scoring Service (Python Flask)
+
+- Ensure all Python dependencies are listed in `requirements.txt`.
+- Deploy the Flask service to **Render.com** as a web service.
+
+---
+
+## Database (PostgreSQL)
+
+- Use **PostgreSQL** hosted on **Render.com** or any managed database provider.
+- Ensure connection URLs and credentials are correctly set in the `application.properties` of the backend.
+
+---
+
+## 🔭 Future Enhancements
+
+- Role-based access control (Admin/Recruiter)
+- Enhanced resume parsing and keyword extraction
+- Analytics dashboard for recruiters
+- Dockerized deployment
+
+---
+
+## ✅ Contributing
+
+Contributions are welcome!  
+Fork the repository, create a feature branch, and submit a pull request.
+
+---
+
+## 📚 License
+
+This project is licensed under the [MIT License](LICENSE).
+
+---
+
+## 👨‍💻 Author
+
+Developed by **Gautama Shastry**  
+🌐 [gautamportfolio.com](https://gautamportfolio.com)
