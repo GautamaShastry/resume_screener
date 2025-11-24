@@ -22,7 +22,7 @@ const MatchResumePage = () => {
         try {
             setIsLoading(true); // Set loading state to true
             const response = await axios.post(
-                `https://resume-screener-backend-hfz2.onrender.com/api/match/matchResume?resumeId=${resumeId}&jobDescriptionId=${jobDescriptionId}`,
+                `http://localhost:8001/api/match/matchResume?resumeId=${resumeId}&jobDescriptionId=${jobDescriptionId}`,
                 {}, // empty body, request is sent as params
                 {
                 headers: { Authorization: `Bearer ${token}` }

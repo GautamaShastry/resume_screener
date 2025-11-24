@@ -15,7 +15,7 @@ const SignupForm = () => {
         e.preventDefault();
         try {
         setIsLoading(true);
-        await axios.post('https://resume-screener-backend-hfz2.onrender.com/api/auth/signup', { name, email, password });
+        await axios.post('http://localhost:8001/api/auth/signup', { name, email, password });
         toast.success('Signup successful! Please login.');
         navigate('/login');
         } catch (error) {
@@ -76,7 +76,7 @@ const SignupForm = () => {
             />
             </div>
 
-            <button type="submit" className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2 rounded">
+            <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded">
             Signup
             </button>
 

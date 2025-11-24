@@ -22,7 +22,7 @@ const UploadResumePage = () => {
 
         try {
             setIsLoading(true); // Set loading state to true
-            const response = await axios.post('https://resume-screener-backend-hfz2.onrender.com/api/resume/upload', formData, {
+            const response = await axios.post('http://localhost:8001/api/resume/upload', formData, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'multipart/form-data'

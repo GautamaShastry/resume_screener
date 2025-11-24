@@ -3,29 +3,64 @@ import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import Loading from './Loading';
+import OtpVerification from './OtpVerification';
 
 const LoginForm = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [isOtpSent, setIsOtpSent] = useState(false);
     const navigate = useNavigate();
 
     const handleLogin = async (e) => {
         e.preventDefault();
         try {
         setIsLoading(true);
-        const response = await axios.post('https://resume-screener-backend-hfz2.onrender.com/api/auth/login', { email, password });
-        localStorage.setItem('token', response.data.token);
-        toast.success('Login successful!');
-        navigate('/upload-resume');
+        const response = await axios.post('http://localhost:8001/api/auth/login', { email, password });
+        
+        // if login successful, navigate to the OTP screen
+        setIsOtpSent(true);
+
+        toast.success(response.data.message);
         } catch (error) {
-        toast.error('Login failed. Please try again.');
+        toast.error('Login failed. Please check your credentials.');
         } finally {
         setIsLoading(false);
         }
     };
 
+    const handleResendOTP = async () => {
+        try {
+            setIsLoading(true);
+            const response = await axios.post('http://localhost:8001/api/auth/resend-otp', { 
+                email 
+            });
+            toast.success(response.data.message);
+        } catch (error) {
+            toast.error('Failed to resend OTP. Please try again.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     if (isLoading) return <Loading />;
+
+    // Show OTP verification screen if first step of login is successful
+    if (isOtpSent) {
+        return (
+            <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-start py-12 px-4">
+                <div className="text-center mb-10">
+                    <h1 className="text-4xl font-extrabold text-blue-700 mb-2">Resume Analyzer</h1>
+                    <p className="text-gray-600">Enter verification code to continue</p>
+                </div>
+                
+                <OtpVerification 
+                    email={email} 
+                    onResendOTP={handleResendOTP} 
+                />
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-start py-12 px-4">

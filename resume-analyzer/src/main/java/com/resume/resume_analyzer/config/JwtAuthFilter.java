@@ -26,8 +26,10 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
 
+        // pull the token from Authorization header
         String token = extractToken(request);
 
+        // validate and load user
         if (token != null && jwtUtil.validateToken(token)) {
             String email = jwtUtil.extractEmail(token);
             var user = userRepository.findByEmail(email).orElse(null);

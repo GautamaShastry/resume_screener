@@ -32,5 +32,7 @@ public class MatchResult {
     private String weaknesses;
 
     private LocalDateTime matchTime;
+
+    private String analysisId;
 }
 
