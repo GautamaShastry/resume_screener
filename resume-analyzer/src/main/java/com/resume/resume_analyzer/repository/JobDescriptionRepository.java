@@ -9,4 +9,5 @@ import java.util.List;
 @Repository
 public interface JobDescriptionRepository extends JpaRepository<JobDescription, Long> {
     List<JobDescription> findByUploadedBy(String email);
+    long countByUploadedBy(String email);
 }

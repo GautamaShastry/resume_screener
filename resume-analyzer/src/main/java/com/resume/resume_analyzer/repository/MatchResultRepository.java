@@ -10,5 +10,6 @@ import java.util.List;
 public interface MatchResultRepository extends JpaRepository<MatchResult, Long> {
     List<MatchResult> findByResumeId(Long resumeId);
     List<MatchResult> findAllByResumeIdIn(List<Long> resumeIds);
+    long countByResumeIdIn(List<Long> resumeIds);
 }
 

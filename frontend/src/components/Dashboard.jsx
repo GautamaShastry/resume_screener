@@ -12,6 +12,13 @@ const Dashboard = () => {
     useEffect(() => {
         const fetchUserProfile = async () => {
             const token = localStorage.getItem('token');
+
+            if (!token) {
+                console.error('❌ No token found! Redirecting to login...');
+                toast.error('Session expired. Please login again.');
+                navigate('/login');
+                return;
+            }
             
             try {
                 const response = await axios.get('http://localhost:8001/api/user/profile', {
