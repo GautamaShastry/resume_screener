@@ -7,6 +7,7 @@ import UploadResumePage from './components/UploadResumePage';
 import UploadJobPage from './components/UploadJobPage';
 import MatchResumePage from './components/MatchResumePage';
 import ResultPage from './components/ResultPage';
+import MatchHistory from './components/MatchHistory';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { useState } from 'react';
@@ -29,6 +30,7 @@ const App = () => {
         <Route path="/upload-job" element={<UploadJobPage setJobDescriptionId={setJobDescriptionId} />} />
         <Route path="/match" element={<MatchResumePage resumeId={resumeId} jobDescriptionId={jobDescriptionId} />} />
         <Route path="/result" element={<ResultPage />} />
+        <Route path="/history" element={<MatchHistory />} />
       </Routes>
     </>
   );

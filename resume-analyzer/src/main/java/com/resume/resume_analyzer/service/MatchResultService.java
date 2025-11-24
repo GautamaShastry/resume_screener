@@ -1,5 +1,6 @@
 package com.resume.resume_analyzer.service;
 
+import com.resume.resume_analyzer.dto.MatchHistoryDto;
 import com.resume.resume_analyzer.entity.JobDescription;
 import com.resume.resume_analyzer.entity.MatchResult;
 import com.resume.resume_analyzer.entity.Resume;
@@ -19,6 +20,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -132,6 +134,48 @@ public class MatchResultService {
             e.printStackTrace();
             throw new RuntimeException("Error processing resume or AI service: " + e.getMessage());
         }
+    }
+
+    public List<MatchHistoryDto> getMatchHistory(String email) {
+        // Get all resumes uploaded by this user
+        List<Long> resumeIds = resumeRepository.findIdsByUploadedBy(email);
+
+        if (resumeIds.isEmpty()) {
+            return List.of();
+        }
+
+        // Get all match results for these resumes
+        List<MatchResult> matchResults = matchResultRepository.findAllByResumeIdIn(resumeIds);
+
+        // Convert to DTOs with additional information
+        return matchResults.stream().map(match -> {
+                    MatchHistoryDto dto = new MatchHistoryDto();
+                    dto.setMatchResultId(match.getId());
+                    dto.setResumeId(match.getResumeId());
+                    dto.setJobDescriptionId(match.getJobDescriptionId());
+                    dto.setMatchScore(match.getMatchScore());
+                    dto.setMatchTime(match.getMatchTime());
+                    dto.setAnalysisId(match.getAnalysisId());
+                    dto.setHasReports(match.getAnalysisId() != null && !match.getAnalysisId().isEmpty());
+
+                    // Fetch resume details
+                    resumeRepository.findById(match.getResumeId()).ifPresent(resume -> {
+                        dto.setResumeFileName(resume.getFileName());
+                    });
+
+                    // Fetch job description details
+                    jobDescriptionRepository.findById(match.getJobDescriptionId()).ifPresent(job -> {
+                        dto.setJobTitle(job.getTitle());
+                        String description = job.getDescription();
+                        dto.setJobDescriptionPreview(description.length() > 100
+                                ? description.substring(0, 100) + "..."
+                                : description);
+                    });
+
+                    return dto;
+                })
+                .sorted((a, b) -> b.getMatchTime().compareTo(a.getMatchTime())) // Sort by most recent
+                .collect(Collectors.toList());
     }
 
     private Double parseDouble(Object value) {
