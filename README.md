@@ -1,275 +1,125 @@
-# 📄 Resume Screener
+# 📄 AI-Powered Resume Analyzer
 
-An AI-powered resume screening platform that helps recruiters and hiring teams evaluate candidate resumes against job descriptions. Upload documents and instantly generate AI-based fit scores, making candidate shortlisting faster and more efficient.
+An intelligent resume screening platform powered by **LangGraph multi-agent AI** and **OpenAI GPT-4**. Analyzes resumes against job descriptions providing match scores, ATS optimization tips, career advice, and professional reports.
 
 ## ✨ Features
 
-- Upload resumes and job descriptions (PDF, DOCX supported)
-- AI-generated fit scores using NLP models
-- Score breakdown across skills, experience, and keyword relevance
-- Secure JWT-based user authentication
-- Responsive React.js user interface
-- RESTful APIs tested via Postman
-- **Future Roadmap:** Role-based access control (Admin/Recruiter)
+- **Multi-Agent AI Analysis** - 6 specialized agents working together
+- **Match Scoring** - Semantic similarity (60%) + Skill matching (40%)
+- **ATS Optimization** - Get recommendations to pass applicant tracking systems
+- **Career Guidance** - Personalized development advice
+- **Professional Reports** - Download PDF/HTML reports with charts
+- **Secure Authentication** - JWT + OTP email verification
+- **Match History** - Track all your analyses
 
----
+## 🏗️ Architecture
+```
+┌─────────────────┐
+│  React Frontend │  ←→  Spring Boot API  ←→  Flask AI Service
+│  (Port 5173)    │      (Port 8001)          (Port 6000)
+└─────────────────┘              ↓
+                          PostgreSQL DB
+```
+
+**Multi-Agent Workflow:**
+```
+Resume + Job Description
+  ↓
+Resume Parser → Job Parser → Matcher → ATS Optimizer → Career Advisor → Report Generator
+  ↓
+Results + Reports
+```
 
 ## 🛠️ Tech Stack
 
-| Layer           | Technology                  |
-|-----------------|------------------------------|
-| Frontend        | React.js (Vercel)            |
-| Backend         | Spring Boot (Render)         |
-| AI Scoring      | Python NLP Microservice (Render) |
-| Database        | PostgreSQL (Render)               |
-| Authentication  | JWT (Spring Security)        |
-| API Testing     | Postman                      |
+| Component | Technologies |
+|-----------|-------------|
+| **Frontend** | React 18, Vite, Tailwind CSS, Chart.js |
+| **Backend** | Spring Boot 3, Spring Security, PostgreSQL, JWT |
+| **AI Service** | Flask, LangChain, LangGraph, GPT-4, Sentence Transformers, spaCy |
 
----
-
-## 🚀 Deployment Overview
-
-| Component           | Platform      |
-|---------------------|---------------|
-| Frontend (React)    | Vercel        |
-| Backend (Spring Boot) | Render      |
-| AI Scoring Service  | Render        |
-| PostgreSQL Database      | Render        |
-
----
-
-## 🏗️ Local Setup Guide
-
-Follow these steps to run the project locally:
+## 🚀 Quick Start
 
 ### Prerequisites
+- Node.js 16+, Java 17+, Python 3.10+
+- PostgreSQL database
+- OpenAI API key
 
-- **Java 17+**
-- **Maven**
-- **Node.js 16+**
-- **PostgreSQL** (local or cloud)
-- **Python 3.x** (for AI scoring microservice)
-- **IntelliJ IDEA** (recommended for backend)
-
----
-
-### 1️⃣ Backend Setup (Spring Boot – IntelliJ)
-
-### Steps:
-
-1. **Clone the repository:**
-
-```bash
-git clone https://github.com/GautamaShastry/resume_screener.git
-```
-
-2. **Open in IntelliJ IDEA:**
-
-- Go to **File > Open**.
-- Select the `/resume_analyzer` folder inside the cloned repository.
-- IntelliJ will recognize it as a Maven project and auto-download dependencies.
-
-3. **Set up MySQL Database:**
-
-- Ensure PostgreSQL is running locally or remotely.
-- Create the database using the following SQL command:
-
+### 1. Database Setup
 ```sql
 CREATE DATABASE resume_db;
 ```
 
-4. **Configure `application.properties`:**
-
-- Navigate to:  
-  `/src/main/resources/application.properties`
-
-- Replace the placeholders with your actual credentials:
-
-```properties
-spring.datasource.url=jdbc:postgresql://localhost:5432/resume_db
-spring.datasource.username=your_postgresql_username
-spring.datasource.password=your_postgresql_password
-jwt.secret=your_jwt_secret_key
+### 2. Backend (Spring Boot)
+```bash
+cd resume-analyzer
+# Edit src/main/resources/application.properties
+# Configure: database URL, username, password, JWT secret, email settings
+mvn spring-boot:run
 ```
+Runs on: `http://localhost:8001`
 
-4. **Run the Spring Boot Application:**
+### 3. AI Service (Flask)
+```bash
+cd ai
+echo "OPENAI_API_KEY=your_key_here" > .env
+pip install -r requirements.txt
+python -m spacy download en_core_web_sm
+python app.py
+```
+Runs on: `http://localhost:6000`
 
-- Locate the file:  
-  `src/main/java/com/your/package/ResumeScreenerApplication.java`
-
-- In IntelliJ IDEA:
-  - Click the **Run** button (green play icon).
-  - Or use the shortcut: **Shift + F10**
-
-- Once running, the backend API will be available at:
-http://localhost:8080/
-
-### 2️⃣ Frontend Setup (React.js - VSCode)
-
-### Steps:
-
-1. **Navigate to the frontend folder:**
-
+### 4. Frontend (React)
 ```bash
 cd frontend
-```
-
-2. **Install dependencies:**
-
-```bash
 npm install
-```
-
-3. **Start the React Development Server:**
-
-```bash
 npm run dev
 ```
+Runs on: `http://localhost:5173`
 
-4. **Access the application:**
+## 📡 API Workflow
 
-   The Application will be running locally at: http://localhost:3000/
+1. **Signup/Login** → Get JWT token + OTP verification
+2. **Upload Resume** → PDF/DOCX file
+3. **Add Job Description** → Target position details
+4. **Analyze** → AI processes in 10-30 seconds
+5. **View Results** → Match score, skills, recommendations
+6. **Download Reports** → PDF/HTML with charts
 
-### 3️⃣ AI Scoring Service Setup (Python – Flask)
+## 📚 Documentation
 
-This is the Python-based AI microservice responsible for analyzing resumes against job descriptions using sentence embeddings and NLP keyword extraction.
+- [Frontend README](./frontend/README.md) - React components and UI
+- [Backend README](./resume-analyzer/README.md) - Spring Boot API
+- [AI Service README](./ai/README.md) - Multi-agent workflow
 
----
+## 📊 Matching Algorithm
+```python
+# Weighted scoring system
+semantic_similarity = cosine_similarity(resume, job_description)
+skill_match = matched_skills / total_required_skills
 
-### Steps:
-
-1. **Navigate to the AI service folder:**
-
-  ```bash
-  cd ai
-  ```
-
-2. **Install Python dependencies:**
-
-   ```bash
-   pip install -r requirements.txt
-   ```
-   
-3. **Run the AI scoring service:**
-
-   ```bash
-   python app.py
-   ```
-
-4. **Access the AI score API:**
-
-   The API will be running locally at: http://localhost:6000/api/analyze
-
-
-## 📡 AI Scoring API Endpoint Details
-
-This service provides a single REST API endpoint to analyze resumes against job descriptions and return a match score along with strengths and weaknesses.
-
----
-
-### 🎯 Endpoint
-
-**POST** `/api/analyze`
-
----
-
-### 📥 Request Parameters
-
-- **file** (Form-Data):  
-  Upload the resume file (supported formats: PDF or DOCX).
-
-- **jobDescriptionText** (Form-Data):  
-  Paste the job description text directly in the form.
-
----
-
-### 📤 Example Request (using Postman or similar tools)
-
-- **URL:**  
-  `http://localhost:6000/api/analyze`
-
-- **Method:**  
-  POST
-
-- **Body:**  
-  Form-Data:
-  - `file`: Attach resume file (PDF or DOCX)
-  - `jobDescriptionText`: Paste job description text
-
----
-
-### 📊 Example Response (JSON)
-
-```json
-{
-  "matchScore": 87.45,
-  "skills": "python, machine learning, data analysis",
-  "strengths": "python, data analysis",
-  "weaknesses": "deep learning, optimization",
-  "accuracy": 87.45
-}
+final_score = (semantic_similarity × 0.6) + (skill_match × 0.4)
 ```
 
-## 📦 Deployment Instructions
+**Score Interpretation:**
+- 80-100% → Excellent match
+- 60-79% → Good match
+- 40-59% → Fair match
+- 0-39% → Poor match
 
-- **Frontend:**  
-  1. Build the React frontend using:
+## 🚀 Deployment
 
-  ```bash
-  npm run build
-  ```
-
-  2. Deploy the build folder to **Vercel** or any static hosting provider.
-
-- **Backend (Spring Boot):**
-
-  - Package the Spring Boot application as a JAR file using:
-
-  ```bash
-  mvn clean install
-  ```
-
-  Deploy the generated JAR to **Render.com** as a web service.
-
----
-
-## AI Scoring Service (Python Flask)
-
-- Ensure all Python dependencies are listed in `requirements.txt`.
-- Deploy the Flask service to **Render.com** as a web service.
-
----
-
-## Database (PostgreSQL)
-
-- Use **PostgreSQL** hosted on **Render.com** or any managed database provider.
-- Ensure connection URLs and credentials are correctly set in the `application.properties` of the backend.
-
----
-
-## 🔭 Future Enhancements
-
-- Role-based access control (Admin/Recruiter)
-- Enhanced resume parsing and keyword extraction
-- Analytics dashboard for recruiters
-- Dockerized deployment
-
----
-
-## ✅ Contributions
-
-Contributions are welcome!  
-Fork the repository, create a feature branch, and submit a pull request.
-
----
-
-## 📚 License
-
-This project is licensed under the [MIT License](LICENSE).
-
----
+**Frontend:** Vercel, Netlify  
+**Backend:** Render.com, Heroku  
+**AI Service:** Render.com, AWS EC2  
+**Database:** Render PostgreSQL, AWS RDS
 
 ## 👨‍💻 Author
 
-Developed by **Gautama Shastry**  
+**Gautama Shastry**  
+📧 gautamashastry@gmail.com  
 🌐 [gautamportfolio.com](https://gautamportfolio.com)
+
+## 📄 License
+
+MIT License

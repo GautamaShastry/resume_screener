@@ -33,7 +33,7 @@ public class ResumeController {
         response.put("resumeId", resumeId); // ✅ Return in response
         return ResponseEntity.ok(response);
     }
-    
+
     @GetMapping("/{id}")
     public ResponseEntity<Map<String, Object>> getResumeDetails(
             @PathVariable Long id,
