@@ -58,12 +58,17 @@ const Dashboard = () => {
                                     <FiCheckCircle className="inline mr-2" />
                                     Check Resume Score
                                 </Link>
-                                <a 
-                                    href="#how-it-works" 
+                                <button 
+                                    onClick={() => {
+                                        document.getElementById('how-it-works')?.scrollIntoView({ 
+                                            behavior: 'smooth',
+                                            block: 'start'
+                                        });
+                                    }}
                                     className="bg-blue-800 hover:bg-blue-900 text-white px-8 py-4 rounded-lg font-semibold text-lg shadow-md transition duration-300 text-center"
                                 >
                                     Learn How It Works
-                                </a>
+                                </button>
                             </div>
                         </div>
                         <div className="md:w-1/3 flex justify-center">
@@ -130,7 +135,7 @@ const Dashboard = () => {
             {/* Features Section */}
             <div className="max-w-7xl mx-auto px-4 py-16">
                 <div className="text-center mb-12">
-                    <h2 className="text-4xl font-bold text-gray-800 mb-4">Why Choose Resume Analyzer?</h2>
+                    <h2 className="text-4xl font-bold text-gray-800 mb-4">Why Choose HireReady?</h2>
                     <p className="text-xl text-gray-600">Transform your job search with cutting-edge AI technology</p>
                 </div>
                 

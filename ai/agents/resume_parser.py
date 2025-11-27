@@ -41,9 +41,19 @@ def resume_parser_agent(state: AgentState) -> AgentState:
         parser = PydanticOutputParser(pydantic_object=ResumeParserOutput)
         
         prompt = ChatPromptTemplate.from_messages([
-            ("system", "You are an expert resume parser. Extract structured information from the resume."),
+            ("system", """You are an expert resume parser. Extract structured information from the resume.
+            
+IMPORTANT: For technical skills, ONLY extract:
+- Programming languages (Python, Java, JavaScript, etc.)
+- Frameworks & libraries (React, Django, Spring Boot, etc.)
+- Databases (MySQL, MongoDB, PostgreSQL, etc.)
+- Cloud platforms (AWS, Azure, GCP, etc.)
+- DevOps tools (Docker, Kubernetes, Jenkins, etc.)
+- Other technical tools (Git, Jira, etc.)
+
+DO NOT include soft skills (communication, teamwork, patience, leadership) or generic terms (experience, knowledge, ability) or platform names (Udemy, Coursera, LinkedIn)."""),
             ("human", """Parse the following resume and extract:
-            1. All technical skills (programming languages, frameworks, tools)
+            1. All TECHNICAL skills only (programming languages, frameworks, tools, databases, cloud platforms)
             2. A concise professional summary
             3. Key achievements and highlights
             

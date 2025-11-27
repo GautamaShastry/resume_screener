@@ -31,10 +31,20 @@ def job_parser_agent(state: AgentState) -> AgentState:
         parser = PydanticOutputParser(pydantic_object=JobParserOutput)
         
         prompt = ChatPromptTemplate.from_messages([
-            ("system", "You are an expert at analyzing job descriptions and extracting key requirements."),
+            ("system", """You are an expert at analyzing job descriptions and extracting key requirements.
+            
+IMPORTANT: For technical skills, ONLY extract:
+- Programming languages (Python, Java, JavaScript, etc.)
+- Frameworks & libraries (React, Django, Spring Boot, etc.)
+- Databases (MySQL, MongoDB, PostgreSQL, etc.)
+- Cloud platforms (AWS, Azure, GCP, etc.)
+- DevOps tools (Docker, Kubernetes, Jenkins, etc.)
+- Other technical tools (Git, Jira, etc.)
+
+DO NOT include soft skills (communication, teamwork, patience, leadership) or generic terms (experience, knowledge, ability)."""),
             ("human", """Analyze the following job description and extract:
             1. The job title
-            2. All required technical skills
+            2. All required TECHNICAL skills only (programming languages, frameworks, tools, databases, cloud platforms)
             3. Required years of experience
             4. Key requirements and responsibilities
             5. Nice-to-have qualifications

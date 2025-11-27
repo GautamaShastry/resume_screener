@@ -16,28 +16,52 @@ def extract_keywords(text: str) -> Set[str]:
     return keywords
 
 def extract_skills(text: str) -> List[str]:
-    """Extract technical skills from text"""
-    # Common programming languages and technologies
+    """Extract technical skills from text using known skills database only"""
+    # Comprehensive technical skills database
     common_skills = {
-        'python', 'java', 'javascript', 'typescript', 'c++', 'c#', 'ruby', 'php',
-        'react', 'angular', 'vue', 'node', 'express', 'django', 'flask', 'spring',
-        'docker', 'kubernetes', 'aws', 'azure', 'gcp', 'git', 'jenkins', 'ci/cd',
-        'sql', 'nosql', 'mongodb', 'postgresql', 'mysql', 'redis',
+        # Programming Languages
+        'python', 'java', 'javascript', 'typescript', 'c++', 'c#', 'c', 'ruby', 'php',
+        'go', 'golang', 'rust', 'swift', 'kotlin', 'scala', 'r', 'perl', 'bash', 'shell',
+        
+        # Frontend
+        'react', 'reactjs', 'angular', 'vue', 'vuejs', 'svelte', 'nextjs', 'nuxt',
+        'html', 'html5', 'css', 'css3', 'sass', 'scss', 'tailwind', 'bootstrap',
+        'jquery', 'webpack', 'vite',
+        
+        # Backend
+        'node', 'nodejs', 'express', 'django', 'flask', 'fastapi', 'spring',
+        'spring boot', 'laravel', 'rails', 'asp.net', '.net', 'nestjs',
+        
+        # Databases
+        'sql', 'nosql', 'mysql', 'postgresql', 'postgres', 'mongodb', 'redis',
+        'elasticsearch', 'cassandra', 'oracle', 'dynamodb', 'sqlite', 'firebase',
+        
+        # Cloud & DevOps
+        'aws', 'azure', 'gcp', 'google cloud', 'docker', 'kubernetes', 'k8s',
+        'jenkins', 'terraform', 'ansible', 'ci/cd', 'devops', 'git', 'github', 'gitlab',
+        
+        # Data Science & ML
         'machine learning', 'deep learning', 'nlp', 'computer vision', 'ai',
-        'tensorflow', 'pytorch', 'scikit-learn', 'pandas', 'numpy',
-        'rest api', 'graphql', 'microservices', 'agile', 'scrum'
+        'tensorflow', 'pytorch', 'keras', 'scikit-learn', 'pandas', 'numpy',
+        'spark', 'hadoop', 'kafka',
+        
+        # Testing
+        'jest', 'pytest', 'selenium', 'cypress', 'junit',
+        
+        # Other
+        'rest api', 'graphql', 'microservices', 'agile', 'scrum', 'jira',
+        'linux', 'unix', 'nginx', 'apache'
     }
     
     text_lower = text.lower()
     found_skills = []
     
+    # Only extract from known skills database - NO keyword extraction
     for skill in common_skills:
-        if skill in text_lower:
+        # Use word boundary matching for accuracy
+        pattern = r'\b' + re.escape(skill) + r'\b'
+        if re.search(pattern, text_lower):
             found_skills.append(skill)
-    
-    # Also extract from keywords
-    keywords = extract_keywords(text)
-    found_skills.extend([k for k in keywords if len(k) > 2])
     
     return list(set(found_skills))
 

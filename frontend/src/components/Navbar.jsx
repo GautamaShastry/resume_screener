@@ -14,7 +14,7 @@ const Navbar = () => {
                 className="text-white font-extrabold text-2xl cursor-pointer hover:text-blue-100 transition duration-200 flex items-center"
             >
                 <FiHome className="mr-2" />
-                Resume Analyzer
+                Home 
             </h1>
 
             <div className="flex items-center space-x-4">
