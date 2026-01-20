@@ -15,6 +15,17 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 # Store results temporarily (in production, use Redis or a database)
 analysis_cache = {}
 
+# Preload models at startup for faster first request
+print("🔄 Preloading models...")
+try:
+    from tools.matching_tools import matching_tools
+    from tools.nlp_tools import nlp  # This loads spaCy
+    # Warm up the sentence transformer
+    _ = matching_tools.calculate_similarity("test", "test")
+    print("✅ Models preloaded successfully")
+except Exception as e:
+    print(f"⚠️ Model preload warning: {e}")
+
 @app.route('/api/analyze', methods=['POST'])
 def analyze_resume():
     try:
@@ -35,11 +46,13 @@ def analyze_resume():
         filename = secure_filename(file.filename)
         file_content = file.read()
         
-        # Initialize state
+        # Initialize state with all fields including new enhanced features
         initial_state: AgentState = {
             "resume_file": file_content,
             "resume_filename": filename,
             "job_description": job_description,
+            "job_url": request.form.get('jobUrl', None),
+            "company_name": request.form.get('companyName', None),
             "resume_text": "",
             "resume_sections": {},
             "resume_skills": [],
@@ -57,6 +70,11 @@ def analyze_resume():
             "ats_recommendations": [],
             "career_advice": [],
             "improvement_suggestions": [],
+            # New enhanced features
+            "company_intel": {},
+            "interview_questions": [],
+            "tailored_resume_suggestions": [],
+            # Reports
             "pdf_report": None,
             "html_report": None,
             "messages": [],
@@ -78,7 +96,7 @@ def analyze_resume():
         # Cache the result (including reports)
         analysis_cache[analysis_id] = result
         
-        # Prepare response
+        # Prepare response with all features
         response = {
             "analysisId": analysis_id,
             "matchScore": result['match_score'],
@@ -91,7 +109,11 @@ def analyze_resume():
             "improvementSuggestions": result.get('improvement_suggestions', []),
             "jobTitle": result.get('job_title', ''),
             "messages": result.get('messages', []),
-            "hasReports": result.get('pdf_report') is not None
+            "hasReports": result.get('pdf_report') is not None,
+            # New enhanced features
+            "companyIntel": result.get('company_intel', {}),
+            "interviewQuestions": result.get('interview_questions', []),
+            "tailoredResumeSuggestions": result.get('tailored_resume_suggestions', [])
         }
         
         return jsonify(response), 200
@@ -309,4 +331,4 @@ def health_check():
     return jsonify({'status': 'healthy', 'service': 'Resume Analyzer AI'}), 200
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=6000, debug=False)
+    app.run(host='0.0.0.0', port=6000, debug=False, threaded=True)

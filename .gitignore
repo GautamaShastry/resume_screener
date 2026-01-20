@@ -1,2 +1,5 @@
 ai/venv/
 frontend/node_modules/
+.env
+INTERVIEW_SCRIPT.md  
+application.properties

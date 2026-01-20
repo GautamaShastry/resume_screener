@@ -34,7 +34,7 @@ public class MatchResultService {
     // ✅ Use your deployed Flask AI service URL
     private final String AI_SERVICE_URL = "http://localhost:6000/api/analyze";
 
-    public Map<String, Object> matchResume(Long resumeId, Long jobDescriptionId) {
+    public Map<String, Object> matchResume(Long resumeId, Long jobDescriptionId, String companyName, String jobUrl) {
         Optional<Resume> resumeOpt = resumeRepository.findById(resumeId);
         Optional<JobDescription> jobDescOpt = jobDescriptionRepository.findById(jobDescriptionId);
 
@@ -67,6 +67,12 @@ public class MatchResultService {
 
             body.add("file", fileAsResource);
             body.add("jobDescriptionText", jobDescription.getDescription());
+            if (companyName != null && !companyName.trim().isEmpty()) {
+                body.add("companyName", companyName);
+            }
+            if (jobUrl != null && !jobUrl.trim().isEmpty()) {
+                body.add("jobUrl", jobUrl);
+            }
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.MULTIPART_FORM_DATA);
@@ -99,6 +105,11 @@ public class MatchResultService {
             List<String> atsRecommendations = (List<String>) aiResponse.getOrDefault("atsRecommendations", List.of());
             List<String> careerAdvice = (List<String>) aiResponse.getOrDefault("careerAdvice", List.of());
             List<String> improvementSuggestions = (List<String>) aiResponse.getOrDefault("improvementSuggestions", List.of());
+            
+            // New enhanced features
+            Map<String, Object> companyIntel = (Map<String, Object>) aiResponse.getOrDefault("companyIntel", Map.of());
+            List<Map<String, String>> interviewQuestions = (List<Map<String, String>>) aiResponse.getOrDefault("interviewQuestions", List.of());
+            List<Map<String, String>> tailoredResumeSuggestions = (List<Map<String, String>>) aiResponse.getOrDefault("tailoredResumeSuggestions", List.of());
 
             // Save match result into DB
             MatchResult matchResult = new MatchResult();
@@ -127,6 +138,11 @@ public class MatchResultService {
             responseMap.put("atsRecommendations", atsRecommendations);
             responseMap.put("careerAdvice", careerAdvice);
             responseMap.put("improvementSuggestions", improvementSuggestions);
+            
+            // New enhanced features
+            responseMap.put("companyIntel", companyIntel);
+            responseMap.put("interviewQuestions", interviewQuestions);
+            responseMap.put("tailoredResumeSuggestions", tailoredResumeSuggestions);
 
             return responseMap;
 

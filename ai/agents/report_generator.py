@@ -1,10 +1,19 @@
 from graph.state import AgentState
 from tools.report_generator import report_generator
+from config import config
 
 def report_generator_agent(state: AgentState) -> AgentState:
     """
     Agent responsible for generating comprehensive analysis reports
     """
+    # Skip report generation if configured for speed
+    if config.SKIP_REPORTS:
+        state['pdf_report'] = None
+        state['html_report'] = None
+        state['messages'].append("⏭️ Report generation skipped (speed mode)")
+        state['current_step'] = "reports_skipped"
+        return state
+    
     try:
         analysis_data = {
             'match_score': state['match_score'],

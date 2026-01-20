@@ -23,9 +23,11 @@ public class MatchResultController {
     @PostMapping("/matchResume")
     public ResponseEntity<Map<String, Object>> matchResume(
             @RequestParam("resumeId") Long resumeId,
-            @RequestParam("jobDescriptionId") Long jobDescriptionId) {
+            @RequestParam("jobDescriptionId") Long jobDescriptionId,
+            @RequestParam(value = "companyName", required = false) String companyName,
+            @RequestParam(value = "jobUrl", required = false) String jobUrl) {
         try {
-            Map<String, Object> result = matchResultService.matchResume(resumeId, jobDescriptionId);
+            Map<String, Object> result = matchResultService.matchResume(resumeId, jobDescriptionId, companyName, jobUrl);
             return ResponseEntity.ok(result);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));

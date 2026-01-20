@@ -1,312 +1,258 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { toast } from 'react-toastify';
 import axios from 'axios';
 import Loading from './Loading';
-import { 
-    FiClock, 
-    FiFileText, 
-    FiBriefcase, 
-    FiTrendingUp, 
-    FiDownload,
-    FiEye,
-    FiTrash2,
-    FiCalendar
-} from 'react-icons/fi';
+import { FiClock, FiFileText, FiBriefcase, FiDownload, FiEye, FiCalendar, FiPlus } from 'react-icons/fi';
 
 const MatchHistory = () => {
-    const [history, setHistory] = useState([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [filter, setFilter] = useState('all'); // all, high, medium, low
-    const navigate = useNavigate();
+  const [history, setHistory] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [filter, setFilter] = useState('all');
+  const navigate = useNavigate();
 
-    useEffect(() => {
-        fetchHistory();
-    }, []);
+  useEffect(() => {
+    fetchHistory();
+  }, []);
 
-    const fetchHistory = async () => {
-        const token = localStorage.getItem('token');
-        if (!token) {
-            navigate('/login');
-            return;
-        }
+  const fetchHistory = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      navigate('/login');
+      return;
+    }
 
-        try {
-            setIsLoading(true);
-            const response = await axios.get('http://localhost:8001/api/match/history', {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            setHistory(response.data);
-        } catch (error) {
-            console.error('Error fetching history:', error);
-            toast.error('Failed to load match history');
-        } finally {
-            setIsLoading(false);
-        }
-    };
+    try {
+      setIsLoading(true);
+      const response = await axios.get('http://localhost:8001/api/match/history', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setHistory(response.data);
+    } catch (error) {
+      toast.error('Failed to load history');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-    const getScoreColor = (score) => {
-        if (score >= 80) return 'text-green-600 bg-green-50 border-green-200';
-        if (score >= 60) return 'text-yellow-600 bg-yellow-50 border-yellow-200';
-        return 'text-red-600 bg-red-50 border-red-200';
-    };
+  const getScoreColor = (score) => {
+    if (score >= 80) return 'from-green-500 to-emerald-500';
+    if (score >= 60) return 'from-amber-500 to-orange-500';
+    return 'from-red-500 to-pink-500';
+  };
 
-    const getScoreBadge = (score) => {
-        if (score >= 80) return { label: 'Excellent', color: 'bg-green-500' };
-        if (score >= 60) return { label: 'Good', color: 'bg-yellow-500' };
-        return { label: 'Needs Work', color: 'bg-red-500' };
-    };
+  const getScoreBadge = (score) => {
+    if (score >= 80) return { label: 'Excellent', bg: 'bg-green-500/20', text: 'text-green-400' };
+    if (score >= 60) return { label: 'Good', bg: 'bg-amber-500/20', text: 'text-amber-400' };
+    return { label: 'Needs Work', bg: 'bg-red-500/20', text: 'text-red-400' };
+  };
 
-    const formatDate = (dateString) => {
-        const date = new Date(dateString);
-        return date.toLocaleDateString('en-US', { 
-            year: 'numeric', 
-            month: 'short', 
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
-    };
-
-    const filteredHistory = history.filter(item => {
-        if (filter === 'all') return true;
-        if (filter === 'high') return item.matchScore >= 80;
-        if (filter === 'medium') return item.matchScore >= 60 && item.matchScore < 80;
-        if (filter === 'low') return item.matchScore < 60;
-        return true;
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-US', { 
+      month: 'short', day: 'numeric', year: 'numeric'
     });
+  };
 
-    const handleDownloadPDF = async (matchResultId) => {
-        const token = localStorage.getItem('token');
-        try {
-            const response = await axios.get(
-                `http://localhost:8001/api/report/pdf/${matchResultId}`,
-                {
-                    headers: { Authorization: `Bearer ${token}` },
-                    responseType: 'blob'
-                }
-            );
+  const filteredHistory = history.filter(item => {
+    if (filter === 'all') return true;
+    if (filter === 'high') return item.matchScore >= 80;
+    if (filter === 'medium') return item.matchScore >= 60 && item.matchScore < 80;
+    if (filter === 'low') return item.matchScore < 60;
+    return true;
+  });
 
-            const url = window.URL.createObjectURL(new Blob([response.data]));
-            const link = document.createElement('a');
-            link.href = url;
-            link.setAttribute('download', `resume-analysis-${matchResultId}.pdf`);
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
-            toast.success('PDF downloaded successfully!');
-        } catch (error) {
-            toast.error('Failed to download PDF');
-        }
-    };
+  const handleDownloadPDF = async (matchResultId) => {
+    const token = localStorage.getItem('token');
+    try {
+      const response = await axios.get(`http://localhost:8001/api/report/pdf/${matchResultId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+        responseType: 'blob'
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `analysis-${matchResultId}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      toast.success('PDF downloaded!');
+    } catch (error) {
+      toast.error('Failed to download PDF');
+    }
+  };
 
-    const handleViewReport = async (matchResultId) => {
-        const token = localStorage.getItem('token');
-        try {
-            const response = await axios.get(
-                `http://localhost:8001/api/report/html/${matchResultId}`,
-                {
-                    headers: { Authorization: `Bearer ${token}` }
-                }
-            );
+  const handleViewReport = async (matchResultId) => {
+    const token = localStorage.getItem('token');
+    try {
+      const response = await axios.get(`http://localhost:8001/api/report/html/${matchResultId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const newWindow = window.open();
+      newWindow.document.write(response.data);
+      newWindow.document.close();
+    } catch (error) {
+      toast.error('Failed to view report');
+    }
+  };
 
-            const newWindow = window.open();
-            newWindow.document.write(response.data);
-            newWindow.document.close();
-        } catch (error) {
-            toast.error('Failed to view report');
-        }
-    };
+  if (isLoading) return <Loading />;
 
-    if (isLoading) return <Loading />;
+  const filters = [
+    { key: 'all', label: 'All' },
+    { key: 'high', label: '≥80%', color: 'text-green-400' },
+    { key: 'medium', label: '60-79%', color: 'text-amber-400' },
+    { key: 'low', label: '<60%', color: 'text-red-400' },
+  ];
 
-    return (
-        <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-gray-100 py-12 px-4">
-            <div className="max-w-6xl mx-auto">
-                {/* Header Section */}
-                <div className="bg-white rounded-2xl shadow-lg p-8 mb-8">
-                    <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center">
-                            <div className="bg-indigo-100 p-3 rounded-full mr-4">
-                                <FiClock className="w-8 h-8 text-indigo-600" />
-                            </div>
-                            <div>
-                                <h1 className="text-3xl font-bold text-gray-800">Match History</h1>
-                                <p className="text-gray-600">View all your past resume analyses</p>
-                            </div>
-                        </div>
-                        <div className="text-right">
-                            <p className="text-3xl font-bold text-indigo-600">{history.length}</p>
-                            <p className="text-sm text-gray-600">Total Matches</p>
-                        </div>
-                    </div>
+  return (
+    <div className="min-h-screen bg-slate-950 py-12 px-4">
+      <div className="fixed inset-0 z-0">
+        <div className="absolute inset-0 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950" />
+        <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-indigo-500/5 rounded-full blur-3xl" />
+      </div>
 
-                    {/* Filter Tabs */}
-                    <div className="flex space-x-2 mt-6">
-                        <button
-                            onClick={() => setFilter('all')}
-                            className={`px-4 py-2 rounded-lg font-medium transition duration-200 ${
-                                filter === 'all'
-                                    ? 'bg-indigo-600 text-white'
-                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                            }`}
-                        >
-                            All ({history.length})
-                        </button>
-                        <button
-                            onClick={() => setFilter('high')}
-                            className={`px-4 py-2 rounded-lg font-medium transition duration-200 ${
-                                filter === 'high'
-                                    ? 'bg-green-600 text-white'
-                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                            }`}
-                        >
-                            Excellent (≥80%)
-                        </button>
-                        <button
-                            onClick={() => setFilter('medium')}
-                            className={`px-4 py-2 rounded-lg font-medium transition duration-200 ${
-                                filter === 'medium'
-                                    ? 'bg-yellow-600 text-white'
-                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                            }`}
-                        >
-                            Good (60-79%)
-                        </button>
-                        <button
-                            onClick={() => setFilter('low')}
-                            className={`px-4 py-2 rounded-lg font-medium transition duration-200 ${
-                                filter === 'low'
-                                    ? 'bg-red-600 text-white'
-                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                            }`}
-                        >
-                            Needs Work (&lt;60%)
-                        </button>
-                    </div>
-                </div>
-
-                {/* History List */}
-                {filteredHistory.length === 0 ? (
-                    <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
-                        <div className="bg-gray-100 p-6 rounded-full inline-block mb-4">
-                            <FiClock className="w-16 h-16 text-gray-400" />
-                        </div>
-                        <h3 className="text-xl font-semibold text-gray-700 mb-2">No Match History</h3>
-                        <p className="text-gray-500 mb-6">
-                            {filter !== 'all' 
-                                ? `No matches found in the ${filter} category` 
-                                : "You haven't matched any resumes yet"}
-                        </p>
-                        <button
-                            onClick={() => navigate('/upload-resume')}
-                            className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200"
-                        >
-                            Start Your First Match
-                        </button>
-                    </div>
-                ) : (
-                    <div className="space-y-4">
-                        {filteredHistory.map((item) => {
-                            const badge = getScoreBadge(item.matchScore);
-                            return (
-                                <div
-                                    key={item.matchResultId}
-                                    className="bg-white rounded-xl shadow-lg hover:shadow-xl transition duration-200 overflow-hidden"
-                                >
-                                    <div className="p-6">
-                                        <div className="flex items-start justify-between">
-                                            {/* Left Section - Match Details */}
-                                            <div className="flex-1">
-                                                <div className="flex items-center space-x-4 mb-4">
-                                                    {/* Match Score Circle */}
-                                                    <div className={`flex items-center justify-center w-20 h-20 rounded-full border-4 ${getScoreColor(item.matchScore)}`}>
-                                                        <div className="text-center">
-                                                            <p className="text-2xl font-bold">{Math.round(item.matchScore)}</p>
-                                                            <p className="text-xs">Match</p>
-                                                        </div>
-                                                    </div>
-
-                                                    {/* Job & Resume Info */}
-                                                    <div className="flex-1">
-                                                        <div className="flex items-center mb-2">
-                                                            <span className={`${badge.color} text-white text-xs font-semibold px-3 py-1 rounded-full mr-2`}>
-                                                                {badge.label}
-                                                            </span>
-                                                            <span className="text-xs text-gray-500 flex items-center">
-                                                                <FiCalendar className="mr-1" />
-                                                                {formatDate(item.matchTime)}
-                                                            </span>
-                                                        </div>
-                                                        
-                                                        <h3 className="text-lg font-bold text-gray-800 mb-1 flex items-center">
-                                                            <FiBriefcase className="mr-2 text-purple-600" />
-                                                            {item.jobTitle || 'Untitled Position'}
-                                                        </h3>
-                                                        
-                                                        <p className="text-sm text-gray-600 mb-2 flex items-center">
-                                                            <FiFileText className="mr-2 text-blue-600" />
-                                                            {item.resumeFileName || 'Resume'}
-                                                        </p>
-                                                        
-                                                        {item.jobDescriptionPreview && (
-                                                            <p className="text-xs text-gray-500 line-clamp-2">
-                                                                {item.jobDescriptionPreview}
-                                                            </p>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            {/* Right Section - Actions */}
-                                            <div className="flex flex-col space-y-2 ml-4">
-                                                {item.hasReports && (
-                                                    <>
-                                                        <button
-                                                            onClick={() => handleViewReport(item.matchResultId)}
-                                                            className="flex items-center justify-center bg-blue-50 hover:bg-blue-100 text-blue-600 font-medium py-2 px-4 rounded-lg transition duration-200"
-                                                        >
-                                                            <FiEye className="mr-2" />
-                                                            View
-                                                        </button>
-                                                        <button
-                                                            onClick={() => handleDownloadPDF(item.matchResultId)}
-                                                            className="flex items-center justify-center bg-green-50 hover:bg-green-100 text-green-600 font-medium py-2 px-4 rounded-lg transition duration-200"
-                                                        >
-                                                            <FiDownload className="mr-2" />
-                                                            PDF
-                                                        </button>
-                                                    </>
-                                                )}
-                                            </div>
-                                        </div>
-
-                                        {/* Bottom Stats */}
-                                        <div className="grid grid-cols-3 gap-4 mt-4 pt-4 border-t border-gray-200">
-                                            <div className="text-center">
-                                                <p className="text-xs text-gray-500 mb-1">Resume ID</p>
-                                                <p className="text-sm font-semibold text-gray-700">#{item.resumeId}</p>
-                                            </div>
-                                            <div className="text-center">
-                                                <p className="text-xs text-gray-500 mb-1">Job ID</p>
-                                                <p className="text-sm font-semibold text-gray-700">#{item.jobDescriptionId}</p>
-                                            </div>
-                                            <div className="text-center">
-                                                <p className="text-xs text-gray-500 mb-1">Analysis ID</p>
-                                                <p className="text-sm font-semibold text-gray-700 truncate">
-                                                    {item.analysisId ? `...${item.analysisId.substring(item.analysisId.length - 8)}` : 'N/A'}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-                )}
+      <div className="relative z-10 max-w-5xl mx-auto">
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex flex-col md:flex-row md:items-center md:justify-between mb-8"
+        >
+          <div className="flex items-center mb-4 md:mb-0">
+            <div className="w-14 h-14 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center mr-4">
+              <FiClock className="w-7 h-7 text-white" />
             </div>
-        </div>
-    );
+            <div>
+              <h1 className="text-3xl font-bold text-white">Match History</h1>
+              <p className="text-gray-400">{history.length} total analyses</p>
+            </div>
+          </div>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => navigate('/upload-resume')}
+            className="px-5 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-medium flex items-center shadow-lg shadow-blue-500/25"
+          >
+            <FiPlus className="mr-2" /> New Analysis
+          </motion.button>
+        </motion.div>
+
+        {/* Filters */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.1 }}
+          className="flex flex-wrap gap-2 mb-6"
+        >
+          {filters.map((f) => (
+            <button
+              key={f.key}
+              onClick={() => setFilter(f.key)}
+              className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
+                filter === f.key
+                  ? 'bg-white/10 text-white border border-white/20'
+                  : 'bg-white/5 text-gray-400 hover:bg-white/10 border border-transparent'
+              }`}
+            >
+              <span className={f.color}>{f.label}</span>
+            </button>
+          ))}
+        </motion.div>
+
+        {/* History List */}
+        {filteredHistory.length === 0 ? (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-12 text-center"
+          >
+            <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4">
+              <FiClock className="w-10 h-10 text-gray-500" />
+            </div>
+            <h3 className="text-xl font-semibold text-white mb-2">No History Found</h3>
+            <p className="text-gray-400 mb-6">
+              {filter !== 'all' ? `No matches in this category` : "Start your first analysis"}
+            </p>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => navigate('/upload-resume')}
+              className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-medium"
+            >
+              Start Analysis
+            </motion.button>
+          </motion.div>
+        ) : (
+          <div className="space-y-4">
+            {filteredHistory.map((item, idx) => {
+              const badge = getScoreBadge(item.matchScore);
+              return (
+                <motion.div
+                  key={item.matchResultId}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: idx * 0.05 }}
+                  className="bg-white/5 backdrop-blur-sm rounded-xl border border-white/10 p-6 hover:border-white/20 transition-all"
+                >
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div className="flex items-center gap-4">
+                      {/* Score Circle */}
+                      <div className={`w-16 h-16 rounded-xl bg-gradient-to-br ${getScoreColor(item.matchScore)} flex items-center justify-center`}>
+                        <span className="text-2xl font-bold text-white">{Math.round(item.matchScore)}</span>
+                      </div>
+                      
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className={`${badge.bg} ${badge.text} text-xs font-semibold px-2 py-1 rounded-full`}>
+                            {badge.label}
+                          </span>
+                          <span className="text-xs text-gray-500 flex items-center">
+                            <FiCalendar className="mr-1 w-3 h-3" />
+                            {formatDate(item.matchTime)}
+                          </span>
+                        </div>
+                        <h3 className="text-lg font-semibold text-white flex items-center">
+                          <FiBriefcase className="mr-2 w-4 h-4 text-purple-400" />
+                          {item.jobTitle || 'Untitled Position'}
+                        </h3>
+                        <p className="text-sm text-gray-400 flex items-center">
+                          <FiFileText className="mr-2 w-4 h-4 text-blue-400" />
+                          {item.resumeFileName || 'Resume'}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    {item.hasReports && (
+                      <div className="flex gap-2">
+                        <motion.button
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={() => handleViewReport(item.matchResultId)}
+                          className="px-4 py-2 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 rounded-lg font-medium text-sm flex items-center transition-all"
+                        >
+                          <FiEye className="mr-2 w-4 h-4" /> View
+                        </motion.button>
+                        <motion.button
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={() => handleDownloadPDF(item.matchResultId)}
+                          className="px-4 py-2 bg-green-500/10 hover:bg-green-500/20 text-green-400 rounded-lg font-medium text-sm flex items-center transition-all"
+                        >
+                          <FiDownload className="mr-2 w-4 h-4" /> PDF
+                        </motion.button>
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
 };
 
 export default MatchHistory;

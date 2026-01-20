@@ -1,0 +1,14 @@
+
+    John Doe
+    Software Engineer
+    
+    Skills: Python, JavaScript, React, Node.js, AWS, Docker, PostgreSQL, REST APIs
+    
+    Experience:
+    - Senior Developer at Tech Corp (3 years)
+    - Built scalable web applications using React and Node.js
+    - Deployed applications on AWS using Docker containers
+    
+    Education:
+    - BS Computer Science, State University
+    

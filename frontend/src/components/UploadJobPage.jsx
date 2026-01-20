@@ -1,229 +1,220 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { toast } from 'react-toastify';
 import axios from 'axios';
 import Loading from './Loading';
-import { FiBriefcase, FiAlertCircle, FiCheckCircle } from 'react-icons/fi';
+import { FiBriefcase, FiCheckCircle, FiArrowRight, FiInfo, FiGlobe, FiLink } from 'react-icons/fi';
 
 const UploadJobPage = () => {
-    const [title, setTitle] = useState('');
-    const [description, setDescription] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
-    const [showExample, setShowExample] = useState(false);
-    const navigate = useNavigate();
+  const [title, setTitle] = useState('');
+  const [companyName, setCompanyName] = useState('');
+  const [jobUrl, setJobUrl] = useState('');
+  const [description, setDescription] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [showExample, setShowExample] = useState(false);
+  const navigate = useNavigate();
 
-    const exampleJob = {
-        title: "Senior Software Engineer",
-        description: `We are seeking a talented Senior Software Engineer to join our growing team.
+  const exampleJob = {
+    title: "Senior Software Engineer",
+    company: "Stripe",
+    description: `We are seeking a talented Senior Software Engineer to join our growing team.
 
 Key Responsibilities:
 - Design and develop scalable web applications
 - Lead technical discussions and code reviews
 - Mentor junior developers
-- Collaborate with cross-functional teams
 
 Required Skills:
 - 5+ years of software development experience
 - Strong proficiency in JavaScript, React, Node.js
 - Experience with cloud platforms (AWS/Azure)
-- Excellent problem-solving skills
+- Excellent problem-solving skills`
+  };
 
-Preferred Qualifications:
-- Master's degree in Computer Science
-- Experience with microservices architecture
-- Knowledge of DevOps practices`
-    };
+  const handleUseExample = () => {
+    setTitle(exampleJob.title);
+    setCompanyName(exampleJob.company);
+    setDescription(exampleJob.description);
+    setShowExample(false);
+    toast.info('Example loaded!');
+  };
 
-    const handleUseExample = () => {
-        setTitle(exampleJob.title);
-        setDescription(exampleJob.description);
-        setShowExample(false);
-        toast.info('Example loaded! Feel free to modify it.');
-    };
+  const handleUpload = async (e) => {
+    e.preventDefault();
+    if (description.length < 100) {
+      toast.error('Job description should be at least 100 characters');
+      return;
+    }
 
-    const handleUpload = async (e) => {
-        e.preventDefault();
-        
-        if (description.length < 100) {
-            toast.error('Job description should be at least 100 characters');
-            return;
-        }
+    const token = localStorage.getItem('token');
+    try {
+      setIsLoading(true);
+      const response = await axios.post('http://localhost:8001/api/job/upload', 
+        { title, description, companyName, jobUrl }, 
+        { headers: { 'Authorization': `Bearer ${token}` } }
+      );
+      localStorage.setItem('jobDescriptionId', response.data.jobDescriptionId);
+      // Store company name for the analysis
+      localStorage.setItem('companyName', companyName);
+      localStorage.setItem('jobUrl', jobUrl);
+      toast.success('Job description saved! Starting analysis...');
+      navigate('/match');
+    } catch (error) {
+      toast.error('Upload failed. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-        const token = localStorage.getItem('token');
+  if (isLoading) return <Loading />;
 
-        try {
-            setIsLoading(true);
-            const response = await axios.post('http://localhost:8001/api/job/upload', 
-                { title, description }, 
-                { headers: { 'Authorization': `Bearer ${token}` } }
-            );
-            localStorage.setItem('jobDescriptionId', response.data.jobDescriptionId);
-            toast.success('Job Description uploaded successfully! Now match resume.');
-            navigate('/match');
-        } catch (error) {
-            toast.error('Job description upload failed. Please try again.');
-        } finally {
-            setIsLoading(false);
-        }
-    };
+  const steps = [
+    { num: 1, label: 'Upload Resume', done: true },
+    { num: 2, label: 'Add Job', active: true },
+    { num: 3, label: 'Get Analysis' },
+  ];
 
-    const getCharacterCountColor = () => {
-        if (description.length < 100) return 'text-red-500';
-        if (description.length < 300) return 'text-yellow-500';
-        return 'text-green-500';
-    };
+  return (
+    <div className="min-h-screen bg-slate-950 py-12 px-4">
+      <div className="fixed inset-0 z-0">
+        <div className="absolute inset-0 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950" />
+        <div className="absolute top-0 right-1/4 w-[500px] h-[500px] bg-purple-500/5 rounded-full blur-3xl" />
+        <div className="absolute bottom-0 left-1/4 w-[500px] h-[500px] bg-blue-500/5 rounded-full blur-3xl" />
+      </div>
 
-    if (isLoading) return <Loading />;
-
-    return (
-        <div className="min-h-screen bg-gradient-to-br from-purple-50 to-gray-100 flex flex-col items-center justify-start pt-12 px-4 pb-12">
-            {/* Header Section */}
-            <div className="text-center mb-8 max-w-2xl">
-                <div className="inline-block p-3 bg-purple-100 rounded-full mb-4">
-                    <FiBriefcase className="w-12 h-12 text-purple-600" />
-                </div>
-                <h1 className="text-4xl font-bold text-gray-800 mb-3">Add Job Description</h1>
-                <p className="text-lg text-gray-600">
-                    Provide the job details to get a tailored resume analysis
-                </p>
+      <div className="relative z-10 max-w-3xl mx-auto">
+        {/* Progress Steps */}
+        <div className="flex justify-center mb-8">
+          {steps.map((step, idx) => (
+            <div key={idx} className="flex items-center">
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold ${
+                step.done ? 'bg-green-500 text-white'
+                  : step.active ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white' 
+                  : 'bg-white/10 text-gray-500'
+              }`}>
+                {step.done ? <FiCheckCircle className="w-5 h-5" /> : step.num}
+              </div>
+              <span className={`ml-2 text-sm ${step.active || step.done ? 'text-white' : 'text-gray-500'}`}>
+                {step.label}
+              </span>
+              {idx < 2 && <div className="w-12 h-0.5 mx-4 bg-white/10" />}
             </div>
-
-            {/* Main Form Container */}
-            <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-3xl">
-                <form onSubmit={handleUpload}>
-                    {/* Job Title Input */}
-                    <div className="mb-6">
-                        <label htmlFor="title" className="block text-sm font-semibold text-gray-700 mb-2">
-                            Job Title <span className='text-red-600'>*</span>
-                        </label>
-                        <input
-                            id="title"
-                            type="text"
-                            value={title}
-                            onChange={(e) => setTitle(e.target.value)}
-                            placeholder="e.g., Senior Software Engineer, Marketing Manager"
-                            required
-                            className="w-full p-4 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition duration-200"
-                        />
-                    </div>
-
-                    {/* Job Description Textarea */}
-                    <div className="mb-4">
-                        <div className="flex justify-between items-center mb-2">
-                            <label htmlFor="description" className="block text-sm font-semibold text-gray-700">
-                                Job Description <span className='text-red-600'>*</span>
-                            </label>
-                            <button
-                                type="button"
-                                onClick={() => setShowExample(!showExample)}
-                                className="text-sm text-purple-600 hover:text-purple-700 font-medium"
-                            >
-                                {showExample ? 'Hide Example' : 'View Example'}
-                            </button>
-                        </div>
-
-                        {/* Example Box */}
-                        {showExample && (
-                            <div className="mb-4 bg-purple-50 border-2 border-purple-200 rounded-lg p-4">
-                                <div className="flex justify-between items-start mb-2">
-                                    <h4 className="font-semibold text-purple-800">Example Job Posting:</h4>
-                                    <button
-                                        type="button"
-                                        onClick={handleUseExample}
-                                        className="text-sm bg-purple-600 hover:bg-purple-700 text-white px-3 py-1 rounded"
-                                    >
-                                        Use This
-                                    </button>
-                                </div>
-                                <p className="text-sm text-gray-700 font-medium mb-1">{exampleJob.title}</p>
-                                <p className="text-xs text-gray-600 whitespace-pre-line">{exampleJob.description.substring(0, 200)}...</p>
-                            </div>
-                        )}
-
-                        <textarea
-                            id="description"
-                            value={description}
-                            onChange={(e) => setDescription(e.target.value)}
-                            placeholder="Paste the complete job description here including responsibilities, requirements, qualifications, etc."
-                            required
-                            className="w-full p-4 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition duration-200 min-h-[300px] resize-y"
-                        ></textarea>
-
-                        {/* Character Count */}
-                        <div className="flex justify-between items-center mt-2">
-                            <div className="flex items-center space-x-2">
-                                {description.length >= 100 ? (
-                                    <FiCheckCircle className="text-green-500" />
-                                ) : (
-                                    <FiAlertCircle className="text-yellow-500" />
-                                )}
-                                <span className={`text-sm font-medium ${getCharacterCountColor()}`}>
-                                    {description.length} characters
-                                    {description.length < 100 && ` (minimum 100 required)`}
-                                </span>
-                            </div>
-                            <span className="text-xs text-gray-500">
-                                Recommended: 300-1000 characters
-                            </span>
-                        </div>
-                    </div>
-
-                    {/* Submit Button */}
-                    <button
-                        type="submit"
-                        disabled={description.length < 100}
-                        className={`w-full font-semibold py-4 rounded-lg transition duration-200 transform hover:scale-105 shadow-lg ${
-                            description.length >= 100
-                                ? 'bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white'
-                                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                        }`}
-                    >
-                        Continue to Match →
-                    </button>
-                </form>
-
-                {/* Progress Indicator */}
-                <div className="grid md:grid-cols-3 gap-4 mt-8">
-                    <div className="bg-green-50 p-4 rounded-lg text-center border-2 border-green-200">
-                        <div className="text-2xl font-bold text-green-600 mb-1">✓</div>
-                        <p className="text-sm text-gray-700">Resume Uploaded</p>
-                    </div>
-                    <div className="bg-purple-50 p-4 rounded-lg text-center border-2 border-purple-200">
-                        <div className="text-2xl font-bold text-purple-600 mb-1">2</div>
-                        <p className="text-sm text-gray-700 font-semibold">Add Job Description</p>
-                    </div>
-                    <div className="bg-gray-100 p-4 rounded-lg text-center">
-                        <div className="text-2xl font-bold text-gray-400 mb-1">3</div>
-                        <p className="text-sm text-gray-500">Get Analysis</p>
-                    </div>
-                </div>
-            </div>
-
-            {/* Tips Section */}
-            <div className="mt-8 max-w-3xl bg-blue-50 border border-blue-200 rounded-lg p-6">
-                <h3 className="font-semibold text-blue-800 mb-3 flex items-center">
-                    <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                    </svg>
-                    Tips for accurate analysis:
-                </h3>
-                <ul className="text-sm text-blue-800 space-y-2">
-                    <li className="flex items-start">
-                        <span className="mr-2">•</span>
-                        <span>Include the complete job description with all requirements and qualifications</span>
-                    </li>
-                    <li className="flex items-start">
-                        <span className="mr-2">•</span>
-                        <span>Add specific skills, technologies, and tools mentioned in the posting</span>
-                    </li>
-                    <li className="flex items-start">
-                        <span className="mr-2">•</span>
-                        <span>Include information about required experience level and education</span>
-                    </li>
-                </ul>
-            </div>
+          ))}
         </div>
-    );
+
+        {/* Header */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-8">
+          <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <FiBriefcase className="w-8 h-8 text-white" />
+          </div>
+          <h1 className="text-3xl font-bold text-white mb-2">Add Job Description</h1>
+          <p className="text-gray-400">Paste the job posting you're targeting</p>
+        </motion.div>
+
+        {/* Form Card */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
+          className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-8">
+          <form onSubmit={handleUpload} className="space-y-5">
+            {/* Job Title */}
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Job Title <span className="text-red-400">*</span>
+              </label>
+              <input type="text" value={title} onChange={(e) => setTitle(e.target.value)}
+                placeholder="e.g., Senior Software Engineer" required
+                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all"
+              />
+            </div>
+
+            {/* Company Name - NEW */}
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                <FiGlobe className="inline w-4 h-4 mr-1" /> Company Name <span className="text-gray-500">(for company intel)</span>
+              </label>
+              <input type="text" value={companyName} onChange={(e) => setCompanyName(e.target.value)}
+                placeholder="e.g., Stripe, Google, Amazon"
+                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
+              />
+            </div>
+
+            {/* Job URL - NEW */}
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                <FiLink className="inline w-4 h-4 mr-1" /> Job Posting URL <span className="text-gray-500">(optional)</span>
+              </label>
+              <input type="url" value={jobUrl} onChange={(e) => setJobUrl(e.target.value)}
+                placeholder="https://jobs.lever.co/company/..."
+                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
+              />
+            </div>
+
+            {/* Job Description */}
+            <div>
+              <div className="flex justify-between items-center mb-2">
+                <label className="block text-sm font-medium text-gray-300">
+                  Job Description <span className="text-red-400">*</span>
+                </label>
+                <button type="button" onClick={() => setShowExample(!showExample)}
+                  className="text-sm text-purple-400 hover:text-purple-300 font-medium">
+                  {showExample ? 'Hide Example' : 'View Example'}
+                </button>
+              </div>
+
+              {showExample && (
+                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}
+                  className="mb-4 bg-purple-500/10 border border-purple-500/20 rounded-xl p-4">
+                  <div className="flex justify-between items-start mb-2">
+                    <h4 className="font-semibold text-purple-300">Example:</h4>
+                    <button type="button" onClick={handleUseExample}
+                      className="text-sm bg-purple-600 hover:bg-purple-500 text-white px-3 py-1 rounded-lg">
+                      Use This
+                    </button>
+                  </div>
+                  <p className="text-sm text-gray-300 font-medium">{exampleJob.title} at {exampleJob.company}</p>
+                  <p className="text-xs text-gray-400 whitespace-pre-line mt-1">{exampleJob.description.substring(0, 150)}...</p>
+                </motion.div>
+              )}
+
+              <textarea value={description} onChange={(e) => setDescription(e.target.value)}
+                placeholder="Paste the complete job description here..." required
+                className="w-full px-4 py-4 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all min-h-[200px] resize-y"
+              />
+              <div className="flex justify-between items-center mt-2">
+                <span className={`text-sm font-medium ${description.length >= 100 ? 'text-green-400' : 'text-amber-400'}`}>
+                  {description.length} characters {description.length < 100 && '(min 100)'}
+                </span>
+              </div>
+            </div>
+
+            <motion.button type="submit" disabled={description.length < 100}
+              whileHover={description.length >= 100 ? { scale: 1.02 } : {}}
+              whileTap={description.length >= 100 ? { scale: 0.98 } : {}}
+              className={`w-full py-4 rounded-xl font-semibold flex items-center justify-center transition-all ${
+                description.length >= 100
+                  ? 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white shadow-lg shadow-purple-500/25'
+                  : 'bg-white/10 text-gray-500 cursor-not-allowed'
+              }`}>
+              Analyze Resume <FiArrowRight className="ml-2" />
+            </motion.button>
+          </form>
+        </motion.div>
+
+        {/* Tips */}
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}
+          className="mt-6 bg-blue-500/10 border border-blue-500/20 rounded-xl p-5">
+          <h3 className="font-semibold text-blue-400 mb-2 flex items-center">
+            <FiInfo className="mr-2" /> Tips for better results:
+          </h3>
+          <ul className="text-sm text-blue-200/70 space-y-1">
+            <li>• Add the <strong>company name</strong> to get company intel and talking points</li>
+            <li>• Include the complete job description with all requirements</li>
+            <li>• The more details, the better the interview prep questions</li>
+          </ul>
+        </motion.div>
+      </div>
+    </div>
+  );
 };
 
 export default UploadJobPage;

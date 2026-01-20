@@ -35,14 +35,15 @@ def resume_parser_agent(state: AgentState) -> AgentState:
         experience = extract_experience(sections.get('experience', ''))
         education = extract_education(sections.get('education', ''))
         
-        # Step 5: Use LLM for enhanced parsing
-        llm = ChatOpenAI(model=config.MODEL_NAME, temperature=config.TEMPERATURE)
-        
-        parser = PydanticOutputParser(pydantic_object=ResumeParserOutput)
-        
-        prompt = ChatPromptTemplate.from_messages([
-            ("system", """You are an expert resume parser. Extract structured information from the resume.
+        # Step 5: Use LLM for enhanced parsing (only if not skipping)
+        if not config.SKIP_LLM_PARSING:
+            llm = ChatOpenAI(model=config.MODEL_NAME, temperature=config.TEMPERATURE)
             
+            parser = PydanticOutputParser(pydantic_object=ResumeParserOutput)
+            
+            prompt = ChatPromptTemplate.from_messages([
+                ("system", """You are an expert resume parser. Extract structured information from the resume.
+                
 IMPORTANT: For technical skills, ONLY extract:
 - Programming languages (Python, Java, JavaScript, etc.)
 - Frameworks & libraries (React, Django, Spring Boot, etc.)
@@ -52,32 +53,35 @@ IMPORTANT: For technical skills, ONLY extract:
 - Other technical tools (Git, Jira, etc.)
 
 DO NOT include soft skills (communication, teamwork, patience, leadership) or generic terms (experience, knowledge, ability) or platform names (Udemy, Coursera, LinkedIn)."""),
-            ("human", """Parse the following resume and extract:
-            1. All TECHNICAL skills only (programming languages, frameworks, tools, databases, cloud platforms)
-            2. A concise professional summary
-            3. Key achievements and highlights
+                ("human", """Parse the following resume and extract:
+                1. All TECHNICAL skills only (programming languages, frameworks, tools, databases, cloud platforms)
+                2. A concise professional summary
+                3. Key achievements and highlights
+                
+                Resume:
+                {resume_text}
+                
+                {format_instructions}
+                """)
+            ])
             
-            Resume:
-            {resume_text}
+            chain = prompt | llm | parser
             
-            {format_instructions}
-            """)
-        ])
-        
-        chain = prompt | llm | parser
-        
-        try:
-            result = chain.invoke({
-                "resume_text": resume_text[:4000],  # Limit token count
-                "format_instructions": parser.get_format_instructions()
-            })
-            
-            # Combine NLP-extracted skills with LLM-extracted skills
-            all_skills = list(set(skills + result.skills))
-            state['resume_skills'] = all_skills
-            
-        except Exception as e:
-            # Fallback to NLP-only extraction
+            try:
+                result = chain.invoke({
+                    "resume_text": resume_text[:4000],  # Limit token count
+                    "format_instructions": parser.get_format_instructions()
+                })
+                
+                # Combine NLP-extracted skills with LLM-extracted skills
+                all_skills = list(set(skills + result.skills))
+                state['resume_skills'] = all_skills
+                
+            except Exception as e:
+                # Fallback to NLP-only extraction
+                state['resume_skills'] = skills
+        else:
+            # Fast path: NLP-only extraction
             state['resume_skills'] = skills
         
         state['resume_experience'] = experience
