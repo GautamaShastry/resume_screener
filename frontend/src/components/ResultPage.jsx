@@ -115,8 +115,20 @@ const ResultPage = () => {
       <div className="relative z-10 max-w-6xl mx-auto">
         {/* Header */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">Analysis Complete!</h1>
-          {data.jobTitle && <p className="text-gray-400">Position: <span className="text-white font-medium">{data.jobTitle}</span></p>}
+          <h1 className="text-3xl font-bold text-white mb-4">Analysis Complete!</h1>
+          <div className="space-y-2">
+            {data.jobTitle && (
+              <p className="text-xl text-white font-semibold">{data.jobTitle}</p>
+            )}
+            <div className="flex justify-center gap-4 text-sm">
+              {data.positionType && (
+                <span className="px-3 py-1 bg-blue-500/20 text-blue-400 rounded-full">{data.positionType}</span>
+              )}
+              {data.experienceRequired && data.experienceRequired !== 'Not specified' && (
+                <span className="px-3 py-1 bg-purple-500/20 text-purple-400 rounded-full">{data.experienceRequired}</span>
+              )}
+            </div>
+          </div>
         </motion.div>
 
         {/* Score Card */}

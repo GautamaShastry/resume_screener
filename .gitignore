@@ -1,5 +1,47 @@
+# Python
 ai/venv/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+*.egg-info/
+
+# Node
 frontend/node_modules/
+frontend/dist/
+
+# Environment
 .env
-INTERVIEW_SCRIPT.md  
+*.env.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Build artifacts
+resume-analyzer/target/
+*.jar
+*.class
+
+# Test artifacts
+test-artifacts/
+.coverage
+htmlcov/
+
+# Docker
+.docker/
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project specific
+INTERVIEW_SCRIPT.md
 application.properties
+autoe2e-spec.yml

@@ -57,45 +57,17 @@ def parallel_parse(state: AgentState) -> AgentState:
     """
     start = time.time()
     
-    results = {}
+    # Run parsers sequentially for now to debug the issue
+    # Resume parsing
+    state = resume_parser_agent(state)
     
-    def run_parser(name, parser_func, parser_state):
-        try:
-            result = parser_func(copy.deepcopy(parser_state))
-            return name, result
-        except Exception as e:
-            return name, {"error": str(e)}
+    # Job parsing  
+    state = job_parser_agent(state)
     
-    with ThreadPoolExecutor(max_workers=2) as executor:
-        futures = [
-            executor.submit(run_parser, "resume", resume_parser_agent, state),
-            executor.submit(run_parser, "job", job_parser_agent, state),
-        ]
-        
-        for future in as_completed(futures):
-            name, result = future.result()
-            results[name] = result
-    
-    # Merge resume parser results
-    if "resume" in results and isinstance(results["resume"], dict):
-        r = results["resume"]
-        state['resume_text'] = r.get('resume_text', '')
-        state['resume_sections'] = r.get('resume_sections', {})
-        state['resume_skills'] = r.get('resume_skills', [])
-        state['resume_experience'] = r.get('resume_experience', [])
-        state['resume_education'] = r.get('resume_education', [])
-    
-    # Merge job parser results
-    if "job" in results and isinstance(results["job"], dict):
-        j = results["job"]
-        state['job_title'] = j.get('job_title', '') or 'Software Engineer'
-        state['job_skills'] = j.get('job_skills', [])
-        state['job_requirements'] = j.get('job_requirements', [])
-        state['job_experience_required'] = j.get('job_experience_required', '')
-        print(f"DEBUG: Extracted job_title = {state['job_title']}")
+    print(f"DEBUG parallel_parse: job_title after parsing = '{state.get('job_title', 'NOT SET')}'")
     
     elapsed = time.time() - start
-    state['messages'].append(f"✅ Parallel parsing complete ({elapsed:.1f}s)")
+    state['messages'].append(f"✅ Parsing complete ({elapsed:.1f}s)")
     return state
 
 

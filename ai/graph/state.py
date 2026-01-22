@@ -25,6 +25,7 @@ class AgentState(TypedDict):
     
     # Parsed job data
     job_title: str
+    position_type: str  # Full-time, Part-time, Contract, Internship
     job_requirements: List[str]
     job_skills: List[str]
     job_experience_required: str

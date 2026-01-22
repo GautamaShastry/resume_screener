@@ -7,7 +7,10 @@ import com.resume.resume_analyzer.entity.Resume;
 import com.resume.resume_analyzer.repository.JobDescriptionRepository;
 import com.resume.resume_analyzer.repository.MatchResultRepository;
 import com.resume.resume_analyzer.repository.ResumeRepository;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.timelimiter.annotation.TimeLimiter;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
@@ -20,150 +23,193 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class MatchResultService {
 
     private final MatchResultRepository matchResultRepository;
     private final ResumeRepository resumeRepository;
     private final JobDescriptionRepository jobDescriptionRepository;
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate;
 
-    // ✅ Use your deployed Flask AI service URL
-    private final String AI_SERVICE_URL = "http://localhost:6000/api/analyze";
+    private static final String AI_SERVICE_URL = "http://localhost:6000/api/analyze";
 
-    public Map<String, Object> matchResume(Long resumeId, Long jobDescriptionId, String companyName, String jobUrl) {
-        Optional<Resume> resumeOpt = resumeRepository.findById(resumeId);
-        Optional<JobDescription> jobDescOpt = jobDescriptionRepository.findById(jobDescriptionId);
+    @CircuitBreaker(name = "aiService", fallbackMethod = "matchResumeFallback")
+    @TimeLimiter(name = "aiService")
+    public CompletableFuture<Map<String, Object>> matchResume(Long resumeId, Long jobDescriptionId, String companyName, String jobUrl) {
+        return CompletableFuture.supplyAsync(() -> {
+            Optional<Resume> resumeOpt = resumeRepository.findById(resumeId);
+            Optional<JobDescription> jobDescOpt = jobDescriptionRepository.findById(jobDescriptionId);
 
-        if (resumeOpt.isEmpty() || jobDescOpt.isEmpty()) {
-            throw new RuntimeException("Resume or Job Description not found.");
-        }
-
-        Resume resume = resumeOpt.get();
-        JobDescription jobDescription = jobDescOpt.get();
-
-        // Validation
-        if (resume.getFileData() == null || resume.getFileData().length == 0) {
-            throw new RuntimeException("Resume file data is empty");
-        }
-
-        if (jobDescription.getDescription() == null || jobDescription.getDescription().trim().isEmpty()) {
-            throw new RuntimeException("Job description is empty");
-        }
-
-        try {
-            // Prepare multipart/form-data
-            MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
-
-            ByteArrayResource fileAsResource = new ByteArrayResource(resume.getFileData()) {
-                @Override
-                public String getFilename() {
-                    return resume.getFileName();
-                }
-            };
-
-            body.add("file", fileAsResource);
-            body.add("jobDescriptionText", jobDescription.getDescription());
-            if (companyName != null && !companyName.trim().isEmpty()) {
-                body.add("companyName", companyName);
-            }
-            if (jobUrl != null && !jobUrl.trim().isEmpty()) {
-                body.add("jobUrl", jobUrl);
+            if (resumeOpt.isEmpty() || jobDescOpt.isEmpty()) {
+                throw new RuntimeException("Resume or Job Description not found.");
             }
 
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+            Resume resume = resumeOpt.get();
+            JobDescription jobDescription = jobDescOpt.get();
 
-            HttpEntity<MultiValueMap<String, Object>> entity = new HttpEntity<>(body, headers);
+            if (resume.getFileData() == null || resume.getFileData().length == 0) {
+                throw new RuntimeException("Resume file data is empty");
+            }
 
-            ResponseEntity<Map> response = restTemplate.exchange(
-                    AI_SERVICE_URL,
-                    HttpMethod.POST,
-                    entity,
-                    Map.class
-            );
+            if (jobDescription.getDescription() == null || jobDescription.getDescription().trim().isEmpty()) {
+                throw new RuntimeException("Job description is empty");
+            }
 
-            Map<String, Object> aiResponse = response.getBody();
+            log.info("Calling AI service for resume analysis...");
+            Map<String, Object> aiResponse = callAiService(resume, jobDescription, companyName, jobUrl);
 
-            // Check for errors
             if (aiResponse != null && aiResponse.containsKey("error")) {
                 throw new RuntimeException("AI service returned error: " + aiResponse.get("error"));
             }
 
-            // ✅ Extract all fields from Flask response
-            Double accuracy = parseDouble(aiResponse.get("accuracy"));
-            String analysisId = (String) aiResponse.get("analysisId");
-            Boolean hasReports = (Boolean) aiResponse.getOrDefault("hasReports", false);
-            String jobTitle = (String) aiResponse.getOrDefault("jobTitle", "");
-            String skills = aiResponse.get("skills") != null ? aiResponse.get("skills").toString() : "N/A";
-            String strengths = aiResponse.get("strengths") != null ? aiResponse.get("strengths").toString() : "N/A";
-            String weaknesses = aiResponse.get("weaknesses") != null ? aiResponse.get("weaknesses").toString() : "N/A";
+            return processAndSaveResult(aiResponse, resumeId, jobDescriptionId);
+        });
+    }
 
-            List<String> atsRecommendations = (List<String>) aiResponse.getOrDefault("atsRecommendations", List.of());
-            List<String> careerAdvice = (List<String>) aiResponse.getOrDefault("careerAdvice", List.of());
-            List<String> improvementSuggestions = (List<String>) aiResponse.getOrDefault("improvementSuggestions", List.of());
-            
-            // New enhanced features
-            Map<String, Object> companyIntel = (Map<String, Object>) aiResponse.getOrDefault("companyIntel", Map.of());
-            List<Map<String, String>> interviewQuestions = (List<Map<String, String>>) aiResponse.getOrDefault("interviewQuestions", List.of());
-            List<Map<String, String>> tailoredResumeSuggestions = (List<Map<String, String>>) aiResponse.getOrDefault("tailoredResumeSuggestions", List.of());
+    // Fallback method when circuit breaker is open or call fails
+    public CompletableFuture<Map<String, Object>> matchResumeFallback(Long resumeId, Long jobDescriptionId, 
+            String companyName, String jobUrl, Throwable t) {
+        log.warn("Circuit breaker fallback triggered: {}", t.getMessage());
+        return CompletableFuture.completedFuture(getFallbackResponse(resumeId, jobDescriptionId, 
+                "AI service temporarily unavailable: " + t.getMessage()));
+    }
 
-            // Save match result into DB
-            MatchResult matchResult = new MatchResult();
-            matchResult.setResumeId(resumeId);
-            matchResult.setJobDescriptionId(jobDescriptionId);
-            matchResult.setMatchScore(accuracy);
-            matchResult.setExtractedSkills(skills);
-            matchResult.setStrengths(strengths);
-            matchResult.setWeaknesses(weaknesses);
-            matchResult.setMatchTime(LocalDateTime.now());
-            matchResult.setAnalysisId(analysisId); // ✅ Store analysisId
-
-            MatchResult savedResult = matchResultRepository.save(matchResult);
-
-            // ✅ Return comprehensive response to frontend
-            Map<String, Object> responseMap = new HashMap<>();
-            responseMap.put("matchResultId", savedResult.getId());
-            responseMap.put("analysisId", analysisId);
-            responseMap.put("accuracy", accuracy);
-            responseMap.put("matchScore", accuracy);
-            responseMap.put("skills", skills);
-            responseMap.put("strengths", strengths);
-            responseMap.put("weaknesses", weaknesses);
-            responseMap.put("hasReports", hasReports);
-            responseMap.put("jobTitle", jobTitle);
-            responseMap.put("atsRecommendations", atsRecommendations);
-            responseMap.put("careerAdvice", careerAdvice);
-            responseMap.put("improvementSuggestions", improvementSuggestions);
-            
-            // New enhanced features
-            responseMap.put("companyIntel", companyIntel);
-            responseMap.put("interviewQuestions", interviewQuestions);
-            responseMap.put("tailoredResumeSuggestions", tailoredResumeSuggestions);
-
-            return responseMap;
-
+    // Synchronous version for backward compatibility
+    public Map<String, Object> matchResumeSync(Long resumeId, Long jobDescriptionId, String companyName, String jobUrl) {
+        try {
+            return matchResume(resumeId, jobDescriptionId, companyName, jobUrl).get();
         } catch (Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException("Error processing resume or AI service: " + e.getMessage());
+            log.error("Error in sync match: {}", e.getMessage());
+            return getFallbackResponse(resumeId, jobDescriptionId, e.getMessage());
         }
     }
 
+    private Map<String, Object> callAiService(Resume resume, JobDescription jobDescription, 
+            String companyName, String jobUrl) {
+        MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+
+        ByteArrayResource fileAsResource = new ByteArrayResource(resume.getFileData()) {
+            @Override
+            public String getFilename() {
+                return resume.getFileName();
+            }
+        };
+
+        body.add("file", fileAsResource);
+        body.add("jobDescriptionText", jobDescription.getDescription());
+        if (companyName != null && !companyName.trim().isEmpty()) {
+            body.add("companyName", companyName);
+        }
+        if (jobUrl != null && !jobUrl.trim().isEmpty()) {
+            body.add("jobUrl", jobUrl);
+        }
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+
+        HttpEntity<MultiValueMap<String, Object>> entity = new HttpEntity<>(body, headers);
+
+        ResponseEntity<Map> response = restTemplate.exchange(
+                AI_SERVICE_URL,
+                HttpMethod.POST,
+                entity,
+                Map.class
+        );
+
+        return response.getBody();
+    }
+
+    private Map<String, Object> getFallbackResponse(Long resumeId, Long jobDescriptionId, String message) {
+        Map<String, Object> fallback = new HashMap<>();
+        fallback.put("matchResultId", null);
+        fallback.put("analysisId", null);
+        fallback.put("accuracy", 0.0);
+        fallback.put("matchScore", 0.0);
+        fallback.put("skills", "Unable to analyze");
+        fallback.put("strengths", "Service temporarily unavailable");
+        fallback.put("weaknesses", "Please try again later");
+        fallback.put("hasReports", false);
+        fallback.put("jobTitle", "");
+        fallback.put("error", message);
+        fallback.put("circuitBreakerTripped", true);
+        fallback.put("atsRecommendations", List.of("Please retry your analysis when the service is available"));
+        fallback.put("careerAdvice", List.of());
+        fallback.put("improvementSuggestions", List.of());
+        fallback.put("companyIntel", Map.of());
+        fallback.put("interviewQuestions", List.of());
+        fallback.put("tailoredResumeSuggestions", List.of());
+        return fallback;
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> processAndSaveResult(Map<String, Object> aiResponse, Long resumeId, Long jobDescriptionId) {
+        Double accuracy = parseDouble(aiResponse.get("accuracy"));
+        String analysisId = (String) aiResponse.get("analysisId");
+        Boolean hasReports = (Boolean) aiResponse.getOrDefault("hasReports", false);
+        String jobTitle = (String) aiResponse.getOrDefault("jobTitle", "");
+        String positionType = (String) aiResponse.getOrDefault("positionType", "Full-time");
+        String experienceRequired = (String) aiResponse.getOrDefault("experienceRequired", "Not specified");
+        String skills = aiResponse.get("skills") != null ? aiResponse.get("skills").toString() : "N/A";
+        String strengths = aiResponse.get("strengths") != null ? aiResponse.get("strengths").toString() : "N/A";
+        String weaknesses = aiResponse.get("weaknesses") != null ? aiResponse.get("weaknesses").toString() : "N/A";
+
+        List<String> atsRecommendations = (List<String>) aiResponse.getOrDefault("atsRecommendations", List.of());
+        List<String> careerAdvice = (List<String>) aiResponse.getOrDefault("careerAdvice", List.of());
+        List<String> improvementSuggestions = (List<String>) aiResponse.getOrDefault("improvementSuggestions", List.of());
+        
+        Map<String, Object> companyIntel = (Map<String, Object>) aiResponse.getOrDefault("companyIntel", Map.of());
+        List<Map<String, String>> interviewQuestions = (List<Map<String, String>>) aiResponse.getOrDefault("interviewQuestions", List.of());
+        List<Map<String, String>> tailoredResumeSuggestions = (List<Map<String, String>>) aiResponse.getOrDefault("tailoredResumeSuggestions", List.of());
+
+        // Save match result into DB
+        MatchResult matchResult = new MatchResult();
+        matchResult.setResumeId(resumeId);
+        matchResult.setJobDescriptionId(jobDescriptionId);
+        matchResult.setMatchScore(accuracy);
+        matchResult.setExtractedSkills(skills);
+        matchResult.setStrengths(strengths);
+        matchResult.setWeaknesses(weaknesses);
+        matchResult.setMatchTime(LocalDateTime.now());
+        matchResult.setAnalysisId(analysisId);
+
+        MatchResult savedResult = matchResultRepository.save(matchResult);
+
+        Map<String, Object> responseMap = new HashMap<>();
+        responseMap.put("matchResultId", savedResult.getId());
+        responseMap.put("analysisId", analysisId);
+        responseMap.put("accuracy", accuracy);
+        responseMap.put("matchScore", accuracy);
+        responseMap.put("skills", skills);
+        responseMap.put("strengths", strengths);
+        responseMap.put("weaknesses", weaknesses);
+        responseMap.put("hasReports", hasReports);
+        responseMap.put("jobTitle", jobTitle);
+        responseMap.put("positionType", positionType);
+        responseMap.put("experienceRequired", experienceRequired);
+        responseMap.put("atsRecommendations", atsRecommendations);
+        responseMap.put("careerAdvice", careerAdvice);
+        responseMap.put("improvementSuggestions", improvementSuggestions);
+        responseMap.put("companyIntel", companyIntel);
+        responseMap.put("interviewQuestions", interviewQuestions);
+        responseMap.put("tailoredResumeSuggestions", tailoredResumeSuggestions);
+
+        return responseMap;
+    }
+
     public List<MatchHistoryDto> getMatchHistory(String email) {
-        // Get all resumes uploaded by this user
         List<Long> resumeIds = resumeRepository.findIdsByUploadedBy(email);
 
         if (resumeIds.isEmpty()) {
             return List.of();
         }
 
-        // Get all match results for these resumes
         List<MatchResult> matchResults = matchResultRepository.findAllByResumeIdIn(resumeIds);
 
-        // Convert to DTOs with additional information
         return matchResults.stream().map(match -> {
                     MatchHistoryDto dto = new MatchHistoryDto();
                     dto.setMatchResultId(match.getId());
@@ -174,12 +220,10 @@ public class MatchResultService {
                     dto.setAnalysisId(match.getAnalysisId());
                     dto.setHasReports(match.getAnalysisId() != null && !match.getAnalysisId().isEmpty());
 
-                    // Fetch resume details
                     resumeRepository.findById(match.getResumeId()).ifPresent(resume -> {
                         dto.setResumeFileName(resume.getFileName());
                     });
 
-                    // Fetch job description details
                     jobDescriptionRepository.findById(match.getJobDescriptionId()).ifPresent(job -> {
                         dto.setJobTitle(job.getTitle());
                         String description = job.getDescription();
@@ -190,7 +234,7 @@ public class MatchResultService {
 
                     return dto;
                 })
-                .sorted((a, b) -> b.getMatchTime().compareTo(a.getMatchTime())) // Sort by most recent
+                .sorted((a, b) -> b.getMatchTime().compareTo(a.getMatchTime()))
                 .collect(Collectors.toList());
     }
 

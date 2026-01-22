@@ -27,7 +27,7 @@ public class MatchResultController {
             @RequestParam(value = "companyName", required = false) String companyName,
             @RequestParam(value = "jobUrl", required = false) String jobUrl) {
         try {
-            Map<String, Object> result = matchResultService.matchResume(resumeId, jobDescriptionId, companyName, jobUrl);
+            Map<String, Object> result = matchResultService.matchResumeSync(resumeId, jobDescriptionId, companyName, jobUrl);
             return ResponseEntity.ok(result);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));

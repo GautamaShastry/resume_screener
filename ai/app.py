@@ -59,6 +59,7 @@ def analyze_resume():
             "resume_experience": [],
             "resume_education": [],
             "job_title": "",
+            "position_type": "",
             "job_requirements": [],
             "job_skills": [],
             "job_experience_required": "",
@@ -107,7 +108,9 @@ def analyze_resume():
             "atsRecommendations": result.get('ats_recommendations', []),
             "careerAdvice": result.get('career_advice', []),
             "improvementSuggestions": result.get('improvement_suggestions', []),
-            "jobTitle": result.get('job_title', ''),
+            "jobTitle": result.get('job_title', 'Software Engineer'),
+            "positionType": result.get('position_type', 'Full-time'),
+            "experienceRequired": result.get('job_experience_required', 'Not specified'),
             "messages": result.get('messages', []),
             "hasReports": result.get('pdf_report') is not None,
             # New enhanced features
@@ -115,6 +118,8 @@ def analyze_resume():
             "interviewQuestions": result.get('interview_questions', []),
             "tailoredResumeSuggestions": result.get('tailored_resume_suggestions', [])
         }
+        
+        print(f"DEBUG app.py: jobTitle='{response['jobTitle']}', exp='{response['experienceRequired']}'")
         
         return jsonify(response), 200
         

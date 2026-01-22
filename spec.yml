@@ -1,0 +1,23 @@
+# AutoE2E Spec for Resume Analyzer
+# Run: autoe2e run -f spec.yml
+
+compose_file: docker-compose.yml
+base_url: http://localhost:6000
+
+health_checks:
+  - type: http
+    url: http://localhost:6000/health
+    expected_status: 200
+    timeout: 120
+  - type: http
+    url: http://localhost:8001/actuator/health
+    expected_status: 200
+    timeout: 120
+
+artifacts:
+  collect: on_fail
+  path: ./test-artifacts
+
+test_config:
+  parallel: 4
+  timeout: 300

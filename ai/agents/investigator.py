@@ -7,6 +7,7 @@ from langchain_openai import ChatOpenAI
 from langchain.prompts import ChatPromptTemplate
 from graph.state import AgentState
 from tools.web_scraper import web_scraper
+from tools.cache import cache, company_cache_key
 from config import config
 
 
@@ -23,7 +24,16 @@ def investigator_agent(state: AgentState) -> AgentState:
             job_desc = state.get('job_description', '')
             company_name = _extract_company_name(job_desc)
         
-        # Search for company information
+        # Check cache first for company intel
+        cache_key = company_cache_key(company_name)
+        cached_intel = cache.get(cache_key)
+        if cached_intel:
+            print(f"🎯 Company Intel Cache HIT: {company_name}")
+            state['company_intel'] = cached_intel
+            state['messages'].append(f"✅ Company intel loaded from cache for {company_name}")
+            return state
+        
+        print(f"❌ Company Intel Cache MISS: {company_name}")
         search_results = web_scraper.search_company_info(company_name)
         
         # Extract tech from engineering blog if found, using job skills as keywords
@@ -76,6 +86,10 @@ CULTURE_NOTES: 1-2 sentences about engineering culture if found""")
         }
         
         state['company_intel'] = company_intel
+        
+        # Cache company intel for 24 hours (company info doesn't change often)
+        cache.set(cache_key, company_intel, ttl=86400)
+        
         state['messages'].append(f"✅ Company intel gathered for {company_name}")
         
     except Exception as e:

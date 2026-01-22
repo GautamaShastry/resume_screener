@@ -1,180 +1,185 @@
 """
-Job Parser Agent - Extracts job title, skills, and requirements from job descriptions.
+Job Parser Agent - Hybrid approach:
+- NLP for fast skill extraction (from known database)
+- LLM for accurate job title extraction (single fast call)
+- Redis caching for repeated JD parsing
 """
 from langchain_openai import ChatOpenAI
 from langchain.prompts import ChatPromptTemplate
-from langchain.output_parsers import PydanticOutputParser
-from pydantic import BaseModel, Field
 from typing import List
 import re
 
 from graph.state import AgentState
 from tools.nlp_tools import extract_skills
+from tools.cache import cache, hash_content, jd_parse_cache_key
 from config import config
 
 
-class JobParserOutput(BaseModel):
-    job_title: str = Field(description="The job title")
-    required_skills: List[str] = Field(description="List of required technical skills")
-    required_experience: str = Field(description="Required years of experience")
-    key_requirements: List[str] = Field(description="Key job requirements")
-    nice_to_have: List[str] = Field(description="Nice-to-have qualifications")
+def extract_job_title_with_llm(job_description: str) -> dict:
+    """Use LLM to extract job title, position type, and experience - with caching."""
+    # Check cache first
+    jd_hash = hash_content(job_description[:2000])
+    cache_key = jd_parse_cache_key(jd_hash)
+    
+    cached_result = cache.get(cache_key)
+    if cached_result:
+        print(f"🎯 JD Parse Cache HIT")
+        return cached_result
+    
+    print(f"❌ JD Parse Cache MISS - calling LLM")
+    
+    try:
+        llm = ChatOpenAI(model=config.MODEL_NAME, temperature=0.1)
+        
+        prompt = ChatPromptTemplate.from_messages([
+            ("system", """Extract job information from this job description.
+Reply in EXACTLY this format (no other text):
+TITLE: [exact job title like "Software Engineer", "Data Scientist", etc.]
+POSITION_TYPE: [Full-time, Part-time, Contract, Internship, or Not specified]
+EXPERIENCE: [years required like "5+ years" or "Entry Level" or "Not specified"]"""),
+            ("human", "{job_description}")
+        ])
+        
+        response = llm.invoke(prompt.format(job_description=job_description[:2000]))
+        content = response.content
+        
+        # Parse response
+        title = "Software Engineer"
+        position_type = "Full-time"
+        experience = "Not specified"
+        
+        for line in content.split('\n'):
+            line = line.strip()
+            if line.startswith('TITLE:'):
+                title = line.replace('TITLE:', '').strip()
+            elif line.startswith('POSITION_TYPE:'):
+                position_type = line.replace('POSITION_TYPE:', '').strip()
+            elif line.startswith('EXPERIENCE:'):
+                experience = line.replace('EXPERIENCE:', '').strip()
+        
+        result = {"title": title, "position_type": position_type, "experience": experience}
+        
+        # Cache for 24 hours (same JD = same result)
+        cache.set(cache_key, result, ttl=86400)
+        
+        return result
+    except Exception as e:
+        print(f"LLM extraction failed: {e}")
+        return {"title": None, "position_type": None, "experience": None}
 
 
-def extract_job_title(text: str) -> str:
-    """Extract job title from job description using multiple strategies."""
-    
-    # Strategy 1: Look for explicit role patterns in the text
-    role_patterns = [
-        # "We are looking for talented individuals" type
-        r'looking for (?:talented |experienced )?(.+?)(?:\s+to join|\s+in \d{4}|\s+who)',
-        # "Position:" or "Role:" or "Job Title:"
-        r'(?:Position|Role|Job Title|Title)\s*[:\-]\s*([^\n]+)',
-        # "hiring a/an [title]"
-        r'hiring (?:a |an )?([A-Z][a-zA-Z\s]+(?:Engineer|Developer|Scientist|Analyst|Manager|Lead|Architect))',
-        # "join.*as a/an [title]"
-        r'join.*?as (?:a |an )?([A-Z][a-zA-Z\s]+(?:Engineer|Developer|Scientist|Analyst|Manager|Lead))',
-    ]
-    
-    for pattern in role_patterns:
-        match = re.search(pattern, text, re.IGNORECASE)
-        if match:
-            title = match.group(1).strip()
-            # Clean up
-            title = re.sub(r'\s+', ' ', title)
-            title = title.rstrip('.,;:')
-            if 10 < len(title) < 80:
-                return title
-    
-    # Strategy 2: Look for team/department context to infer role
-    team_role_map = {
-        r'recommendation.*(?:infra|infrastructure)': 'Software Engineer - Recommendation Infrastructure',
-        r'e-?commerce.*recommendation': 'E-commerce Recommendation Engineer',
-        r'machine learning.*(?:infra|infrastructure)': 'ML Infrastructure Engineer',
-        r'data.*(?:infra|infrastructure|pipeline)': 'Data Infrastructure Engineer',
-        r'backend.*team': 'Backend Engineer',
-        r'frontend.*team': 'Frontend Engineer',
-        r'platform.*team': 'Platform Engineer',
-        r'mobile.*team': 'Mobile Engineer',
-        r'ios.*team': 'iOS Engineer',
-        r'android.*team': 'Android Engineer',
-    }
-    
+def extract_job_title_nlp(text: str) -> str:
+    """Fallback: Extract job title using regex patterns."""
     text_lower = text.lower()
-    for pattern, role in team_role_map.items():
-        if re.search(pattern, text_lower):
-            return role
     
-    # Strategy 3: Check responsibilities section for clues
-    resp_patterns = [
-        (r'build.*recommendation system', 'Recommendation Systems Engineer'),
-        (r'build.*(?:large-scale|distributed).*system', 'Software Engineer'),
-        (r'design.*(?:high performance|scalable).*system', 'Software Engineer'),
-        (r'machine learning.*(?:model|algorithm)', 'Machine Learning Engineer'),
-        (r'data pipeline', 'Data Engineer'),
-        (r'(?:ios|swift|objective-c)', 'iOS Engineer'),
-        (r'(?:android|kotlin)', 'Android Engineer'),
-        (r'(?:react|vue|angular|frontend)', 'Frontend Engineer'),
+    # Pattern 1: Team/department context
+    team_patterns = [
+        (r'recommendation.*(?:infra|infrastructure)', 'Software Engineer - Recommendation Infrastructure'),
+        (r'e-?commerce.*recommendation', 'E-commerce Software Engineer'),
+        (r'machine learning.*(?:infra|infrastructure)', 'ML Infrastructure Engineer'),
+        (r'data.*(?:infra|infrastructure|platform)', 'Data Platform Engineer'),
+        (r'backend.*team', 'Backend Engineer'),
+        (r'frontend.*team', 'Frontend Engineer'),
+        (r'platform.*team', 'Platform Engineer'),
+        (r'mobile.*team', 'Mobile Engineer'),
     ]
     
-    for pattern, role in resp_patterns:
+    for pattern, role in team_patterns:
         if re.search(pattern, text_lower):
             return role
     
-    # Strategy 4: Look for common job titles anywhere in text
-    common_titles = [
+    # Pattern 2: Common job titles
+    job_titles = [
         "Staff Software Engineer", "Senior Software Engineer", "Software Engineer",
-        "Machine Learning Engineer", "ML Engineer", "Data Scientist",
-        "Data Engineer", "Backend Engineer", "Frontend Engineer",
-        "Full Stack Engineer", "DevOps Engineer", "Site Reliability Engineer",
-        "Platform Engineer", "Infrastructure Engineer", "Cloud Engineer",
+        "Machine Learning Engineer", "ML Engineer", "Data Scientist", "Data Engineer",
+        "Backend Engineer", "Frontend Engineer", "Full Stack Engineer",
+        "DevOps Engineer", "Platform Engineer", "Cloud Engineer",
         "iOS Engineer", "Android Engineer", "Mobile Engineer",
-        "Security Engineer", "QA Engineer", "Solutions Architect",
     ]
     
-    for title in common_titles:
+    for title in job_titles:
         if title.lower() in text_lower:
             return title
-    
-    # Strategy 5: Check qualifications for programming languages to infer
-    if re.search(r'c\+\+|java(?!script)', text_lower):
-        return "Software Engineer"
-    if re.search(r'python.*machine learning|ml|deep learning', text_lower):
-        return "Machine Learning Engineer"
     
     return "Software Engineer"
 
 
-def extract_experience_requirement(text: str) -> str:
-    """Extract years of experience requirement from job description."""
+def extract_position_type_nlp(text: str) -> str:
+    """Extract position type using regex."""
+    text_lower = text.lower()
+    
+    if re.search(r'\bintern(ship)?\b', text_lower):
+        return "Internship"
+    if re.search(r'\bcontract\b|\bcontractor\b', text_lower):
+        return "Contract"
+    if re.search(r'\bpart[- ]?time\b', text_lower):
+        return "Part-time"
+    if re.search(r'\bfull[- ]?time\b', text_lower):
+        return "Full-time"
+    if re.search(r'\bfreelance\b', text_lower):
+        return "Freelance"
+    
+    # Default to Full-time for most job postings
+    return "Full-time"
+
+
+def extract_experience_nlp(text: str) -> str:
+    """Extract years of experience using regex."""
     patterns = [
         r'(\d+)\+?\s*(?:years?|yrs?)(?:\s+of)?\s+(?:experience|exp)',
-        r'(?:experience|exp)[:\s]+(\d+)\+?\s*(?:years?|yrs?)',
-        r'(\d+)\s*(?:to|-)\s*(\d+)\s*(?:years?|yrs?)',
-        r'(?:minimum|at least|min)\s+(\d+)\s*(?:years?|yrs?)',
+        r'(?:minimum|at least)\s+(\d+)\s*(?:years?|yrs?)',
     ]
     
     for pattern in patterns:
         match = re.search(pattern, text, re.IGNORECASE)
         if match:
-            if match.lastindex and match.lastindex == 2:
-                return f"{match.group(1)}-{match.group(2)} years"
             return f"{match.group(1)}+ years"
     
-    # Check for "recent graduate" or "entry level"
-    if re.search(r'recent graduate|entry.level|new grad|graduate.*\d{4}', text, re.IGNORECASE):
+    if re.search(r'recent graduate|entry.level|new grad', text, re.IGNORECASE):
         return "Entry Level / New Grad"
     
     return "Not specified"
 
 
 def job_parser_agent(state: AgentState) -> AgentState:
-    """Agent responsible for parsing and extracting requirements from job description."""
+    """
+    Hybrid job parser:
+    1. Extract skills using NLP (fast, from known database)
+    2. Extract job title, position type, experience using LLM (accurate, single call)
+    """
     try:
         job_description = state['job_description']
         
-        # Extract skills using NLP
+        # Step 1: Extract skills using NLP (fast)
         skills = extract_skills(job_description)
+        state['job_skills'] = skills
         
-        if not config.SKIP_LLM_PARSING:
-            # Use LLM for enhanced parsing
-            llm = ChatOpenAI(model=config.MODEL_NAME, temperature=config.TEMPERATURE)
-            parser = PydanticOutputParser(pydantic_object=JobParserOutput)
-            
-            prompt = ChatPromptTemplate.from_messages([
-                ("system", "You are an expert at analyzing job descriptions. Extract the job title and technical skills."),
-                ("human", "Analyze this job description:\n{job_description}\n\n{format_instructions}")
-            ])
-            
-            try:
-                result = (prompt | llm | parser).invoke({
-                    "job_description": job_description[:4000],
-                    "format_instructions": parser.get_format_instructions()
-                })
-                
-                state['job_title'] = result.job_title
-                state['job_skills'] = list(set(skills + result.required_skills))
-                state['job_requirements'] = result.key_requirements
-                state['job_experience_required'] = result.required_experience
-            except Exception:
-                # Fallback to NLP extraction
-                state['job_title'] = extract_job_title(job_description)
-                state['job_skills'] = skills
-                state['job_requirements'] = []
-                state['job_experience_required'] = extract_experience_requirement(job_description)
+        # Step 2: Extract job info using LLM (hybrid approach)
+        llm_result = extract_job_title_with_llm(job_description)
+        
+        if llm_result["title"]:
+            state['job_title'] = llm_result["title"]
+            state['position_type'] = llm_result.get("position_type") or extract_position_type_nlp(job_description)
+            state['job_experience_required'] = llm_result.get("experience") or extract_experience_nlp(job_description)
         else:
-            # Fast path: NLP-only extraction
-            state['job_title'] = extract_job_title(job_description)
-            state['job_skills'] = skills
-            state['job_requirements'] = []
-            state['job_experience_required'] = extract_experience_requirement(job_description)
+            # Fallback to NLP extraction
+            state['job_title'] = extract_job_title_nlp(job_description)
+            state['position_type'] = extract_position_type_nlp(job_description)
+            state['job_experience_required'] = extract_experience_nlp(job_description)
         
-        print(f"DEBUG job_parser: title='{state['job_title']}', skills={len(state['job_skills'])}")
+        state['job_requirements'] = []
+        
+        print(f"DEBUG job_parser: title='{state['job_title']}', type='{state['position_type']}', exp='{state['job_experience_required']}', skills={len(skills)}")
         state['messages'].append("✅ Job description parsed successfully")
         state['current_step'] = "job_parsed"
         
     except Exception as e:
-        state['error'] = f"Job description parsing failed: {str(e)}"
+        state['job_title'] = "Software Engineer"
+        state['position_type'] = "Full-time"
+        state['job_skills'] = []
+        state['job_requirements'] = []
+        state['job_experience_required'] = "Not specified"
+        state['error'] = f"Job parsing failed: {str(e)}"
         state['messages'].append(f"❌ Job parsing error: {str(e)}")
     
     return state

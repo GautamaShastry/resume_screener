@@ -1,5 +1,5 @@
-FROM openjdk:23-jdk
+FROM eclipse-temurin:21-jdk
 WORKDIR /app
-COPY target/screener-0.0.1-SNAPSHOT.jar screener-0.0.1-SNAPSHOT.jar
-EXPOSE 8000
-ENTRYPOINT ["java", "-jar", "screener-0.0.1-SNAPSHOT.jar"]
+COPY target/screener-0.0.1-SNAPSHOT.jar app.jar
+EXPOSE 8001
+ENTRYPOINT ["java", "-jar", "app.jar"]
