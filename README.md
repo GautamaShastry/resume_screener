@@ -120,6 +120,8 @@ final_score = (semantic_similarity × 0.6) + (skill_match × 0.4)
 📧 gautamashastry@gmail.com  
 🌐 [gautamportfolio.com](https://gautamportfolio.com)
 
+Open to Contributions. If you find any issues, please create a new issue.
+
 ## 📄 License
 
 MIT License
