@@ -7,6 +7,8 @@ import app.models_registry  # noqa: F401
 from app.auth.identity import Authenticator, build_authenticator
 from app.core.db import make_engine, make_sessionmaker
 from app.core.settings import Settings
+from app.llm.azure_openai import build_llm
+from app.llm.client import LLMClient
 from app.storage.blob import BlobStore, build_blob_store
 
 
@@ -18,6 +20,7 @@ class Services:
     http: httpx.AsyncClient
     authenticator: Authenticator
     blob: BlobStore
+    llm: LLMClient
 
     async def aclose(self) -> None:
         await self.blob.aclose()
@@ -35,4 +38,5 @@ def build_services(settings: Settings) -> Services:
         http=http,
         authenticator=build_authenticator(settings, http),
         blob=build_blob_store(settings),
+        llm=build_llm(settings),
     )
