@@ -20,6 +20,8 @@ async def health() -> dict:
 def create_app(services: Services, *, close_on_shutdown: bool = False) -> FastAPI:
     @asynccontextmanager
     async def lifespan(_: FastAPI):
+        if services.settings.env != "prod":
+            await services.blob.ensure()
         yield
         if close_on_shutdown:
             await services.aclose()

@@ -15,6 +15,7 @@ dependencies = [
   "azure-identity>=1.19",
   "azure-storage-blob>=12.24",
   "azure-storage-queue>=12.12",
+  "aiohttp>=3.10",
   "openai>=1.57",
   "pymupdf>=1.25",
   "python-docx>=1.1",
