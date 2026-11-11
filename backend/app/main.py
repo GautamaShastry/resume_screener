@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.analysis.router import router as analyses_router
 from app.auth.router import router as me_router
 from app.core.errors import install_error_handlers
 from app.core.logging import setup_logging
@@ -43,6 +44,7 @@ def create_app(services: Services, *, close_on_shutdown: bool = False) -> FastAP
     app.include_router(tasks_router)
     app.include_router(resumes_router)
     app.include_router(postings_router)
+    app.include_router(analyses_router)
     return app
 
 
