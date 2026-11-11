@@ -1,6 +1,7 @@
 import { Route, Routes } from "react-router-dom";
 import { RequireAuth } from "./auth/RequireAuth";
 import { Layout } from "./components/Layout";
+import { AnalysisPage } from "./pages/AnalysisPage";
 import { HomePage } from "./pages/HomePage";
 import { JobDetailPage } from "./pages/JobDetailPage";
 import { JobsPage } from "./pages/JobsPage";
@@ -25,6 +26,7 @@ export function App() {
         <Route path="/resumes/:resumeId" element={<ResumeDetailPage />} />
         <Route path="/jobs" element={<JobsPage />} />
         <Route path="/jobs/:postingId" element={<JobDetailPage />} />
+        <Route path="/analyses/:analysisId" element={<AnalysisPage />} />
       </Route>
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
