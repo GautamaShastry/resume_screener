@@ -9,6 +9,7 @@ import { LandingPage } from "./pages/LandingPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 import { ResumeDetailPage } from "./pages/ResumeDetailPage";
 import { ResumesPage } from "./pages/ResumesPage";
+import { SettingsPage } from "./pages/SettingsPage";
 
 export function App() {
   return (
@@ -27,6 +28,7 @@ export function App() {
         <Route path="/jobs" element={<JobsPage />} />
         <Route path="/jobs/:postingId" element={<JobDetailPage />} />
         <Route path="/analyses/:analysisId" element={<AnalysisPage />} />
+        <Route path="/settings" element={<SettingsPage />} />
       </Route>
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
