@@ -55,3 +55,52 @@ def mock_client(routes: dict[str, httpx.Response]) -> httpx.AsyncClient:
 
 async def public_resolver(host: str) -> list[str]:
     return ["93.184.216.34"]
+
+
+POSTING_TEXT = """Senior Backend Engineer
+Acme Corp - Remote
+Requirements:
+- 5+ years of professional Python experience
+- Experience building REST APIs with FastAPI or Django
+- Strong PostgreSQL skills
+Nice to have:
+- Kubernetes experience is a plus
+"""
+
+
+def posting_llm_response(extra: dict | None = None) -> dict:
+    reqs = [
+        {
+            "text": "5+ years of professional Python experience",
+            "kind": "must",
+            "category": "experience",
+            "source_phrase": "5+ years of professional Python experience",
+        },
+        {
+            "text": "Experience building REST APIs with FastAPI or Django",
+            "kind": "must",
+            "category": "skill",
+            "source_phrase": "Experience building REST APIs with FastAPI or Django",
+        },
+        {
+            "text": "Strong PostgreSQL skills",
+            "kind": "must",
+            "category": "skill",
+            "source_phrase": "Strong PostgreSQL skills",
+        },
+        {
+            "text": "Kubernetes experience",
+            "kind": "nice",
+            "category": "skill",
+            "source_phrase": "Kubernetes experience is a plus",
+        },
+    ]
+    if extra:
+        reqs.append(extra)
+    return {
+        "title": "Senior Backend Engineer",
+        "company": "Acme Corp",
+        "location": "Remote",
+        "seniority": "senior",
+        "requirements": reqs,
+    }
