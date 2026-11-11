@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 import app.models_registry  # noqa: F401
 from app.auth.identity import Authenticator, build_authenticator
 from app.core.db import make_engine, make_sessionmaker
+from app.core.ratelimit import RateLimiter
 from app.core.settings import Settings
 from app.llm.azure_openai import build_llm
 from app.llm.client import LLMClient
@@ -23,6 +24,7 @@ class Services:
     blob: BlobStore
     llm: LLMClient
     queue: TaskQueue
+    rate_limiter: RateLimiter
 
     async def aclose(self) -> None:
         await self.queue.aclose()
@@ -43,4 +45,5 @@ def build_services(settings: Settings) -> Services:
         blob=build_blob_store(settings),
         llm=build_llm(settings),
         queue=build_queue(settings),
+        rate_limiter=RateLimiter(settings.rate_limit_per_min),
     )

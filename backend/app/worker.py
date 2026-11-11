@@ -8,6 +8,7 @@ from opentelemetry import propagate, trace
 from app.core.logging import setup_logging
 from app.core.services import Services, build_services
 from app.core.settings import get_settings
+from app.core.telemetry import setup_telemetry
 from app.tasks.queue import QueueMessage
 from app.tasks.registry import TaskRegistry, registry
 from app.tasks.runner import Lease, process_message, recover_stuck
@@ -67,6 +68,7 @@ def main() -> None:
 
     settings = get_settings()
     setup_logging()
+    setup_telemetry(settings, "worker")
     services = build_services(settings)
     stop = asyncio.Event()
 

@@ -17,4 +17,6 @@ async def current_user(
     if not header.startswith("Bearer "):
         raise Unauthorized("Missing bearer token")
     identity = await services.authenticator.authenticate(header[7:].strip())
-    return await upsert_user(session, identity)
+    user = await upsert_user(session, identity)
+    services.rate_limiter.hit(user.id)
+    return user

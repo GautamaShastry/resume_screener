@@ -1,8 +1,13 @@
+from typing import TYPE_CHECKING
+
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.identity import Identity
 from app.auth.models import User
+
+if TYPE_CHECKING:
+    from app.core.services import Services
 
 
 async def upsert_user(session: AsyncSession, identity: Identity) -> User:
@@ -18,3 +23,9 @@ async def upsert_user(session: AsyncSession, identity: Identity) -> User:
     user = (await session.execute(stmt)).scalar_one()
     await session.commit()
     return user
+
+
+async def delete_account(session: AsyncSession, services: "Services", user: User) -> None:
+    await services.blob.delete_prefix(f"resumes/{user.id}/")
+    await session.delete(user)
+    await session.commit()

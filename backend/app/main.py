@@ -9,6 +9,7 @@ from app.core.errors import install_error_handlers
 from app.core.logging import setup_logging
 from app.core.services import Services, build_services
 from app.core.settings import get_settings
+from app.core.telemetry import setup_telemetry
 from app.postings.router import router as postings_router
 from app.resumes.router import router as resumes_router
 from app.tasks.router import router as tasks_router
@@ -51,4 +52,5 @@ def create_app(services: Services, *, close_on_shutdown: bool = False) -> FastAP
 def build_app() -> FastAPI:
     settings = get_settings()
     setup_logging()
+    setup_telemetry(settings, "api")
     return create_app(build_services(settings), close_on_shutdown=True)

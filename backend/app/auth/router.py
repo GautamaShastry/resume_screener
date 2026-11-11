@@ -1,11 +1,12 @@
 import uuid
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Response, status
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.deps import current_user
 from app.auth.models import User
+from app.auth.service import delete_account
 from app.core.deps import get_services, get_session
 from app.core.services import Services
 from app.quotas.service import next_reset, usage_today
@@ -43,3 +44,13 @@ async def get_usage(
 ) -> UsageOut:
     items = await usage_today(session, services.settings, user.id)
     return UsageOut(resets_at=next_reset().isoformat(), items=items)
+
+
+@router.delete("", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_me(
+    user: User = Depends(current_user),
+    session: AsyncSession = Depends(get_session),
+    services: Services = Depends(get_services),
+) -> Response:
+    await delete_account(session, services, user)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
