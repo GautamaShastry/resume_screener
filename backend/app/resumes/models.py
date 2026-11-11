@@ -21,7 +21,10 @@ class Resume(Base):
     created_at: Mapped[datetime] = created_at()
 
     versions: Mapped[list["ResumeVersion"]] = relationship(
-        order_by="ResumeVersion.version_no", lazy="selectin", passive_deletes=True
+        order_by="ResumeVersion.version_no",
+        lazy="selectin",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
     )
 
 

@@ -80,3 +80,47 @@ def make_docx(
     buf = io.BytesIO()
     d.save(buf)
     return buf.getvalue()
+
+
+def resume_llm_response(extra_bullet: str | None = None) -> dict:
+    bullets_acme = BULLETS[:2] + ([extra_bullet] if extra_bullet else [])
+    return {
+        "contact": {"name": "Jane Doe", "email": "jane@example.com", "phone": "+1 555 123 4567"},
+        "summary": "Backend engineer focused on reliable APIs.",
+        "skills": ["Python", "FastAPI", "PostgreSQL", "React", "Docker"],
+        "sections": [
+            {
+                "kind": "experience",
+                "title": "Experience",
+                "entries": [
+                    {
+                        "org": "Acme Corp",
+                        "role": "Senior Engineer",
+                        "start": "Jan 2020",
+                        "end": "Present",
+                        "bullets": bullets_acme,
+                    },
+                    {
+                        "org": "Beta Inc",
+                        "role": "Software Engineer",
+                        "start": "Jun 2016",
+                        "end": "Dec 2019",
+                        "bullets": BULLETS[2:],
+                    },
+                ],
+            },
+            {
+                "kind": "education",
+                "title": "Education",
+                "entries": [
+                    {
+                        "org": "State University",
+                        "role": "BSc Computer Science",
+                        "start": "",
+                        "end": "2016",
+                        "bullets": [],
+                    }
+                ],
+            },
+        ],
+    }
