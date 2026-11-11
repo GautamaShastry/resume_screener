@@ -56,7 +56,8 @@ def _extract_pdf(data: bytes) -> ExtractedDoc:
     margin_texts: list[str] = []
     sizes: list[tuple[float, float]] = []
     images = tables = 0
-    for pno, page in enumerate(doc):
+    for pno in range(len(doc)):
+        page = doc[pno]
         w, h = page.rect.width, page.rect.height
         sizes.append((w, h))
         for x0, y0, x1, y1, text, _no, btype in page.get_text("blocks"):

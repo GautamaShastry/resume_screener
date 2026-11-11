@@ -17,7 +17,7 @@ class FetchError(AppError):
 
 async def _resolve(host: str) -> list[str]:
     infos = await asyncio.get_running_loop().getaddrinfo(host, None)
-    return [info[4][0] for info in infos]
+    return [str(info[4][0]) for info in infos]
 
 
 async def _check_host(host: str) -> None:

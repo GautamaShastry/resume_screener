@@ -43,7 +43,10 @@ async def get_usage(
     services: Services = Depends(get_services),
 ) -> UsageOut:
     items = await usage_today(session, services.settings, user.id)
-    return UsageOut(resets_at=next_reset().isoformat(), items=items)
+    return UsageOut(
+        resets_at=next_reset().isoformat(),
+        items={kind: UsageItem(**item) for kind, item in items.items()},
+    )
 
 
 @router.delete("", status_code=status.HTTP_204_NO_CONTENT)

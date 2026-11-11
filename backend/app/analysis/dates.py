@@ -49,13 +49,13 @@ def years_of_experience(structured: dict | None, today: date) -> float:
             intervals.append((_index(start), _index(end) + 1))
     total = 0
     current: tuple[int, int] | None = None
-    for start, end in sorted(intervals):
-        if current is None or start > current[1]:
+    for lo, hi in sorted(intervals):
+        if current is None or lo > current[1]:
             if current is not None:
                 total += current[1] - current[0]
-            current = (start, end)
+            current = (lo, hi)
         else:
-            current = (current[0], max(current[1], end))
+            current = (current[0], max(current[1], hi))
     if current is not None:
         total += current[1] - current[0]
     return round(total / 12, 1)

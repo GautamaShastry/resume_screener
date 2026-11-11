@@ -117,7 +117,9 @@ class AzureTaskQueue:
             visibility_timeout=max(visibility_timeout, 1),
             max_messages=max_messages,
         ):
-            out.append(QueueMessage(m.id, m.pop_receipt, json.loads(m.content), m.dequeue_count))
+            out.append(
+                QueueMessage(m.id, m.pop_receipt or "", json.loads(m.content), m.dequeue_count or 0)
+            )
         return out
 
     async def delete(self, msg: QueueMessage) -> None:
@@ -127,7 +129,7 @@ class AzureTaskQueue:
         updated = await self._main.update_message(
             msg.id, pop_receipt=msg.pop_receipt, visibility_timeout=visibility_timeout
         )
-        return QueueMessage(msg.id, updated.pop_receipt, msg.body, msg.dequeue_count)
+        return QueueMessage(msg.id, updated.pop_receipt or "", msg.body, msg.dequeue_count)
 
     async def send_poison(self, body: dict) -> None:
         await self._poison.send_message(json.dumps(body))

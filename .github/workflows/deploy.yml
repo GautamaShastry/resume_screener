@@ -1,0 +1,67 @@
+name: Deploy
+on:
+  push:
+    branches: [main]
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+
+  deploy:
+    needs: ci
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      RG: ${{ vars.AZURE_RESOURCE_GROUP }}
+      IMAGE: ${{ vars.ACR_LOGIN_SERVER }}/hireready-backend:${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - run: az extension add --name containerapp --upgrade --yes
+      - name: Build backend image in ACR
+        run: az acr build --registry "${{ vars.ACR_NAME }}" --image "hireready-backend:${{ github.sha }}" backend
+      - name: Run migrations
+        run: |
+          az containerapp job update -n hireready-migrate -g "$RG" --image "$IMAGE" -o none
+          EXEC=$(az containerapp job start -n hireready-migrate -g "$RG" --query name -o tsv)
+          for i in $(seq 1 60); do
+            STATUS=$(az containerapp job execution show -n hireready-migrate -g "$RG" --job-execution-name "$EXEC" --query properties.status -o tsv)
+            echo "migration status: $STATUS"
+            if [ "$STATUS" = "Succeeded" ]; then exit 0; fi
+            if [ "$STATUS" = "Failed" ]; then exit 1; fi
+            sleep 10
+          done
+          exit 1
+      - name: Roll out api and worker
+        run: |
+          az containerapp update -n hireready-api -g "$RG" --image "$IMAGE" -o none
+          az containerapp update -n hireready-worker -g "$RG" --image "$IMAGE" -o none
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm, cache-dependency-path: frontend/package-lock.json }
+      - name: Build frontend
+        working-directory: frontend
+        env:
+          VITE_API_BASE_URL: ${{ vars.API_BASE_URL }}
+          VITE_AUTH_MODE: entra
+          VITE_ENTRA_CLIENT_ID: ${{ vars.VITE_ENTRA_CLIENT_ID }}
+          VITE_ENTRA_AUTHORITY: ${{ vars.VITE_ENTRA_AUTHORITY }}
+          VITE_ENTRA_API_SCOPE: ${{ vars.VITE_ENTRA_API_SCOPE }}
+        run: npm ci && npm run build
+      - name: Deploy frontend
+        run: |
+          TOKEN=$(az staticwebapp secrets list -n hireready-web -g "$RG" --query properties.apiKey -o tsv)
+          npx --yes @azure/static-web-apps-cli@2 deploy frontend/dist --deployment-token "$TOKEN" --env production
+      - name: Smoke test
+        run: curl -fsS "${{ vars.API_BASE_URL }}/api/health"

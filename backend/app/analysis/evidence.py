@@ -75,24 +75,24 @@ async def collect_evidence(
 
     evidence = []
     for req in requirements:
-        item = found.get(req["id"])
-        if item is None:
+        match = found.get(req["id"])
+        if match is None:
             evidence.append(
                 {"requirement_id": req["id"], "status": "missing", "quotes": [], "note": ""}
             )
             continue
         quotes = [
             {"bullet_id": b, "text": bullets[b]}
-            for b in dict.fromkeys(item.bullet_ids)
+            for b in dict.fromkeys(match.bullet_ids)
             if b in bullets
         ]
-        status = item.status if (quotes or item.status == "missing") else "missing"
+        status = match.status if (quotes or match.status == "missing") else "missing"
         evidence.append(
             {
                 "requirement_id": req["id"],
                 "status": status,
                 "quotes": quotes,
-                "note": item.note[:300],
+                "note": match.note[:300],
             }
         )
     return evidence

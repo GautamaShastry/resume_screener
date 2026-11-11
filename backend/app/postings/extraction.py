@@ -44,7 +44,7 @@ async def extract_posting(
         usage=usage,
     )
     source = normalize(description)
-    requirements = []
+    requirements: list[dict] = []
     for req in out.requirements:
         if not is_grounded(req.source_phrase, source):
             continue
