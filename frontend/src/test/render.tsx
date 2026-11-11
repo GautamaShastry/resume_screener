@@ -4,6 +4,7 @@ import type { ReactElement } from "react";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { ApiProvider } from "../api/ApiProvider";
 import { DEV_EMAIL_KEY, DevAuthProvider } from "../auth/AuthProvider";
+import { TaskNotifierProvider } from "../components/TaskNotifier";
 import { ToastProvider } from "../components/Toaster";
 
 export function LocationProbe() {
@@ -29,10 +30,12 @@ export function renderWithProviders(
         <ApiProvider>
           <QueryClientProvider client={queryClient}>
             <ToastProvider>
+              <TaskNotifierProvider>
               <Routes>
                 <Route path={path} element={ui} />
                 <Route path="*" element={<LocationProbe />} />
               </Routes>
+              </TaskNotifierProvider>
             </ToastProvider>
           </QueryClientProvider>
         </ApiProvider>

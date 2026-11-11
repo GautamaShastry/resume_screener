@@ -6,6 +6,7 @@ import { ApiProvider } from "./api/ApiProvider";
 import { ApiError } from "./api/client";
 import { App } from "./App";
 import { AuthProvider } from "./auth/AuthProvider";
+import { TaskNotifierProvider } from "./components/TaskNotifier";
 import { ToastProvider } from "./components/Toaster";
 import "./index.css";
 
@@ -25,7 +26,9 @@ createRoot(document.getElementById("root")!).render(
         <ApiProvider>
           <QueryClientProvider client={queryClient}>
             <ToastProvider>
-              <App />
+              <TaskNotifierProvider>
+                <App />
+              </TaskNotifierProvider>
             </ToastProvider>
           </QueryClientProvider>
         </ApiProvider>

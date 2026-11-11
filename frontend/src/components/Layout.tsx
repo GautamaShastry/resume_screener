@@ -2,6 +2,7 @@ import clsx from "clsx";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider";
 import { ErrorBoundary } from "./ErrorBoundary";
+import { RunningTasks } from "./RunningTasks";
 
 const linkClass = ({ isActive }: { isActive: boolean }) =>
   clsx(
@@ -32,6 +33,7 @@ export function Layout() {
             </NavLink>
           </nav>
           <div className="ml-auto flex items-center gap-3">
+            <RunningTasks />
             <span className="hidden text-sm text-slate-500 sm:inline">{email}</span>
             <button
               className="rounded-md border px-3 py-1.5 text-sm"
