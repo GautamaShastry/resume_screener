@@ -16,6 +16,7 @@ os.environ["DATABASE_URL"] = TEST_DB
 os.environ.setdefault("ENV", "test")
 BACKEND_DIR = pathlib.Path(__file__).resolve().parents[1]
 
+import app.tasks.handlers  # noqa: E402,F401  (register all handlers for tests)
 from app.core.db import Base  # noqa: E402
 from app.core.services import build_services  # noqa: E402
 from app.core.settings import Settings  # noqa: E402

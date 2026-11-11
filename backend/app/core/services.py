@@ -10,6 +10,7 @@ from app.core.settings import Settings
 from app.llm.azure_openai import build_llm
 from app.llm.client import LLMClient
 from app.storage.blob import BlobStore, build_blob_store
+from app.tasks.queue import TaskQueue, build_queue
 
 
 @dataclass
@@ -21,8 +22,10 @@ class Services:
     authenticator: Authenticator
     blob: BlobStore
     llm: LLMClient
+    queue: TaskQueue
 
     async def aclose(self) -> None:
+        await self.queue.aclose()
         await self.blob.aclose()
         await self.http.aclose()
         await self.engine.dispose()
@@ -39,4 +42,5 @@ def build_services(settings: Settings) -> Services:
         authenticator=build_authenticator(settings, http),
         blob=build_blob_store(settings),
         llm=build_llm(settings),
+        queue=build_queue(settings),
     )
