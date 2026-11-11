@@ -27,6 +27,7 @@ def create_app(services: Services, *, close_on_shutdown: bool = False) -> FastAP
     async def lifespan(_: FastAPI):
         if services.settings.env != "prod":
             await services.blob.ensure()
+            await services.queue.ensure()
         yield
         if close_on_shutdown:
             await services.aclose()

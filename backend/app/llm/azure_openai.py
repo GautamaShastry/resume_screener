@@ -8,7 +8,6 @@ from pydantic import ValidationError
 
 from app.core.settings import Settings
 from app.llm.client import LLMBadOutput, LLMClient, LLMUnavailable, LLMUsage, T
-from app.llm.fake import FakeLLM
 
 RETRYABLE = (
     openai.RateLimitError,
@@ -95,7 +94,9 @@ class AzureOpenAILLM:
 
 def build_llm(settings: Settings) -> LLMClient:
     if settings.llm_provider == "fake":
-        return FakeLLM({})
+        from app.llm.demo import demo_llm
+
+        return demo_llm()
     from azure.identity.aio import DefaultAzureCredential, get_bearer_token_provider
     from openai import AsyncAzureOpenAI
 
