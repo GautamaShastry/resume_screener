@@ -319,6 +319,7 @@ resource worker 'Microsoft.App/containerApps@2024-03-01' = if (deployApps) {
           env: commonEnv
         }
       ]
+      terminationGracePeriodSeconds: 300
       scale: {
         minReplicas: 0
         maxReplicas: 3

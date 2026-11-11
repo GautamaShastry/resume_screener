@@ -25,6 +25,7 @@ from app.core.services import Services
 from app.postings.models import Posting
 from app.quotas.service import check_quota
 from app.resumes.models import ResumeVersion
+from app.tasks.models import Task
 from app.tasks.service import create_task
 
 router = APIRouter(prefix="/api/analyses", tags=["analyses"])
@@ -49,6 +50,22 @@ async def start_analysis(
         existing = await latest_analysis(session, version.id, posting.id)
         if existing is not None:
             return AnalysisStartOut(analysis_id=existing.id)
+    inflight = (
+        await session.execute(
+            select(Task.id)
+            .where(
+                Task.user_id == user.id,
+                Task.type == "analysis.run",
+                Task.status.in_(["queued", "running"]),
+                Task.input["resume_version_id"].astext == str(version.id),
+                Task.input["posting_id"].astext == str(posting.id),
+            )
+            .limit(1)
+        )
+    ).scalar_one_or_none()
+    if inflight is not None:
+        response.status_code = status.HTTP_202_ACCEPTED
+        return AnalysisStartOut(task_id=inflight)
     await check_quota(session, services.settings, user.id, "analysis")
     task = await create_task(
         session,

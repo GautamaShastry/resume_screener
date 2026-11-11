@@ -149,3 +149,101 @@ async def test_run_worker_processes_then_stops(services, make_user, reg):
     stop.set()
     await asyncio.wait_for(worker, 5)
     assert (await _get(services, task.id)).status == "succeeded"
+
+
+async def _force_running(services, task_id, lease_delta: timedelta) -> None:
+    async with services.sessionmaker() as s:
+        await s.execute(
+            update(Task)
+            .where(Task.id == task_id)
+            .values(
+                status="running",
+                attempts=1,
+                started_at=datetime.now(UTC),
+                lease_expires_at=datetime.now(UTC) + lease_delta,
+            )
+        )
+        await s.commit()
+
+
+async def test_task_of_crashed_worker_is_reclaimed_after_lease_expiry(services, make_user, reg):
+    """A worker killed mid-task leaves status=running; the redelivered message must re-run it."""
+    user = await make_user()
+    calls: list[int] = []
+
+    @reg.register("test.crash", steps=["Run"])
+    async def crash(ctx):
+        calls.append(1)
+        return TaskResult({"ok": True})
+
+    task = await _task(services, user, "test.crash")
+    await _force_running(services, task.id, timedelta(seconds=-1))  # lease expired
+    await drain(services, reg)
+    t = await _get(services, task.id)
+    assert calls == [1]
+    assert (t.status, t.attempts) == ("succeeded", 2)
+
+
+async def test_live_lease_keeps_message_for_later(services, make_user, reg):
+    user = await make_user()
+    calls: list[int] = []
+
+    @reg.register("test.live", steps=["Run"])
+    async def live(ctx):
+        calls.append(1)
+        return TaskResult({})
+
+    task = await _task(services, user, "test.live")
+    await _force_running(services, task.id, timedelta(minutes=5))  # another worker holds it
+    [msg] = await services.queue.receive(1, 0)
+    from app.tasks.runner import Lease, process_message
+
+    await process_message(services, reg, Lease(msg))
+    assert calls == []
+    assert len(services.queue) == 1  # message not deleted
+
+
+async def test_commit_failure_is_a_task_failure_not_a_stuck_task(services, make_user, reg):
+    import uuid as _uuid
+
+    user = await make_user()
+
+    @reg.register("test.badcommit", steps=["Run"])
+    async def bad(ctx):
+        ctx.session.add(Resume(user_id=_uuid.uuid4(), title="orphan"))  # FK violation at commit
+        return TaskResult({})
+
+    task = await _task(services, user, "test.badcommit")
+    await drain(services, reg)
+    t = await _get(services, task.id)
+    assert t.status == "failed" and t.attempts == 3
+
+
+async def test_unknown_task_type_fails_instead_of_sticking(services, make_user, reg):
+    user = await make_user()
+    task = await _task(services, user, "test.unregistered")
+    await drain(services, reg)
+    assert (await _get(services, task.id)).status == "failed"
+
+
+async def test_failed_attempt_retries_after_short_backoff_not_full_lease(services, make_user, reg):
+    from app.tasks.runner import Lease, process_message
+    from tests.tasks.test_queue import Clock
+
+    user = await make_user()
+    services.settings.task_retry_backoff_s = 10
+    clock = Clock()
+    services.queue = InMemoryQueue(clock=clock)
+
+    @reg.register("test.flaky", steps=["Run"])
+    async def flaky(ctx):
+        raise RuntimeError("transient")
+
+    task = await _task(services, user, "test.flaky")
+    [msg] = await services.queue.receive(1, 300)
+    await process_message(services, reg, Lease(msg))
+    assert (await _get(services, task.id)).status == "queued"
+    clock.t = 9
+    assert await services.queue.receive(1, 300) == []
+    clock.t = 11
+    assert len(await services.queue.receive(1, 300)) == 1

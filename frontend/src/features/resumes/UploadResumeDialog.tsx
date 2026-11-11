@@ -1,6 +1,6 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import { useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { errorMessage } from "../../api/errors";
 import { rawRequest } from "../../api/raw";
@@ -22,6 +22,8 @@ export function UploadResumeDialog({ trigger, resumeId }: { trigger: string; res
   const [title, setTitle] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [started, setStarted] = useState<UploadOut | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const inFlight = useRef(false); // synchronous guard: two clicks can land before a re-render
   const { task, error: streamError } = useTask(started?.task_id);
 
   useEffect(() => {
@@ -46,6 +48,9 @@ export function UploadResumeDialog({ trigger, resumeId }: { trigger: string; res
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     if (!file) return setError("Choose a file to upload.");
+    if (inFlight.current) return;
+    inFlight.current = true;
+    setSubmitting(true);
     const form = new FormData();
     form.append("file", file);
     if (!resumeId) form.append("title", title.trim() || file.name);
@@ -62,6 +67,9 @@ export function UploadResumeDialog({ trigger, resumeId }: { trigger: string; res
       });
     } catch (err) {
       setError(errorMessage(err));
+    } finally {
+      inFlight.current = false;
+      setSubmitting(false);
     }
   };
 
@@ -132,7 +140,11 @@ export function UploadResumeDialog({ trigger, resumeId }: { trigger: string; res
                     Cancel
                   </button>
                 </Dialog.Close>
-                <button type="submit" className="rounded-md bg-slate-900 px-3 py-2 text-sm text-white">
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="rounded-md bg-slate-900 px-3 py-2 text-sm text-white disabled:opacity-50"
+                >
                   Upload
                 </button>
               </div>

@@ -44,7 +44,9 @@ PLAIN_PAGE = f"""<html><head><title>Data Engineer - Initech</title></head><body>
 
 def mock_client(routes: dict[str, httpx.Response]) -> httpx.AsyncClient:
     def handler(request: httpx.Request) -> httpx.Response:
-        url = str(request.url)
+        # safe_get connects to the validated IP; route on the original host from the Host header.
+        host = request.headers.get("host", request.url.host).split(":")[0]
+        url = str(request.url.copy_with(host=host))
         for prefix, response in routes.items():
             if url.startswith(prefix):
                 return response

@@ -117,3 +117,12 @@ async def test_cross_user_and_delete(client, services):
     assert (await client.delete(f"/api/postings/{pid}", headers=other)).status_code == 404
     assert (await client.delete(f"/api/postings/{pid}", headers=owner)).status_code == 204
     assert (await client.get(f"/api/postings/{pid}", headers=owner)).status_code == 404
+
+
+async def test_queued_imports_count_toward_the_daily_quota(client, settings):
+    settings.quota_limits["posting_import"] = 2
+    for _ in range(2):
+        r = await client.post("/api/postings", headers=auth(), json={"text": POSTING_TEXT})
+        assert r.status_code == 202
+    r = await client.post("/api/postings", headers=auth(), json={"text": POSTING_TEXT})
+    assert r.status_code == 429 and r.json()["code"] == "QUOTA_EXCEEDED"

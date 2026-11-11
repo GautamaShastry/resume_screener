@@ -20,7 +20,8 @@ async def _resolve(host: str) -> list[str]:
     return [str(info[4][0]) for info in infos]
 
 
-async def _check_host(host: str) -> None:
+async def _check_host(host: str) -> str:
+    """Resolve once, reject non-global addresses, and return the address to connect to."""
     try:
         addresses = await _resolve(host)
     except socket.gaierror as exc:
@@ -30,6 +31,7 @@ async def _check_host(host: str) -> None:
     for address in addresses:
         if not ipaddress.ip_address(address.split("%")[0]).is_global:
             raise FetchError("That address isn't allowed.")
+    return addresses[0].split("%")[0]
 
 
 async def safe_get(
@@ -40,12 +42,17 @@ async def safe_get(
         parsed = httpx.URL(current)
         if parsed.scheme not in ("http", "https") or not parsed.host:
             raise FetchError("Only http and https links are supported.")
-        await _check_host(parsed.host)
+        ip = await _check_host(parsed.host)
+        # Connect to the address we just validated (a second DNS lookup could be rebound to an
+        # internal address); keep the real host name for the Host header and TLS SNI/cert check.
+        target = parsed.copy_with(host=ip)
+        extensions = {"sni_hostname": parsed.host} if parsed.scheme == "https" else {}
         try:
             async with client.stream(
                 "GET",
-                parsed,
-                headers={"User-Agent": USER_AGENT},
+                target,
+                headers={"User-Agent": USER_AGENT, "Host": parsed.netloc.decode("ascii")},
+                extensions=extensions,
                 follow_redirects=False,
                 timeout=10,
             ) as response:

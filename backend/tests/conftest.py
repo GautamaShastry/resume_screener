@@ -44,7 +44,11 @@ def migrated_db():
 @pytest.fixture
 def settings(tmp_path) -> Settings:
     return Settings(
-        env="test", database_url=TEST_DB, local_storage_dir=str(tmp_path / "blobs"), sse_poll_s=0.01
+        env="test",
+        database_url=TEST_DB,
+        local_storage_dir=str(tmp_path / "blobs"),
+        sse_poll_s=0.01,
+        task_retry_backoff_s=0,
     )
 
 

@@ -4,7 +4,7 @@ import uuid
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.errors import NotFound
+from app.core.errors import AppError, NotFound
 from app.resumes.ats import build_ats_report
 from app.resumes.extract import extract
 from app.resumes.models import ResumeVersion
@@ -14,6 +14,12 @@ from app.tasks.registry import TaskContext, TaskResult, registry
 
 log = logging.getLogger("app.resumes")
 STEPS = ["Extracting text", "Checking ATS compatibility", "Structuring résumé"]
+
+
+class UnreadableFile(AppError):
+    status_code = 422
+    code = "UNREADABLE_FILE"
+    retryable = False
 
 
 async def _mark_failed(session: AsyncSession, task: Task) -> None:
@@ -30,7 +36,12 @@ async def parse_resume(ctx: TaskContext) -> TaskResult:
     data = await ctx.services.blob.get(version.blob_path)
 
     await ctx.progress("Extracting text")
-    doc = await asyncio.to_thread(extract, data, version.file_type)
+    try:
+        doc = await asyncio.to_thread(extract, data, version.file_type)
+    except Exception as exc:  # noqa: BLE001  (corrupt/encrypted files fail identically on retry)
+        raise UnreadableFile(
+            "We couldn't open this file. Check it isn't password-protected or damaged."
+        ) from exc
 
     await ctx.progress("Checking ATS compatibility")
     report = build_ats_report(doc)

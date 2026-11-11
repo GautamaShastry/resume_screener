@@ -32,3 +32,26 @@ test("no task id does nothing", () => {
   renderHook(() => useTask(null), { wrapper });
   expect(fetchEventSource).not.toHaveBeenCalled();
 });
+
+test("a stream that closes before a final event reconnects instead of hanging", async () => {
+  localStorage.setItem(DEV_EMAIL_KEY, "me@example.com");
+  let closeError: unknown = null;
+  let retryOutcome: unknown = "not-called";
+  vi.mocked(fetchEventSource).mockImplementation(async (_url, opts) => {
+    try {
+      opts.onclose?.();
+    } catch (err) {
+      closeError = err;
+    }
+    try {
+      retryOutcome = opts.onerror?.(closeError);
+    } catch {
+      retryOutcome = "threw";
+    }
+  });
+  const { result } = renderHook(() => useTask("t2"), { wrapper });
+  await waitFor(() => expect(retryOutcome).not.toBe("not-called"));
+  expect(closeError).toBeInstanceOf(Error); // onclose must signal "retry"
+  expect(retryOutcome).not.toBe("threw"); // and onerror must allow the retry
+  expect(result.current.error).toBeNull();
+});

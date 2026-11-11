@@ -73,3 +73,26 @@ async def test_success_sends_user_agent():
     client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
     url, body, ctype = await safe_get(client, "https://ok.example/")
     assert body == b"ok" and ctype == "text/plain" and seen["ua"] == "HireReadyBot/2.0"
+
+
+async def test_connects_to_the_validated_ip_not_a_fresh_lookup(monkeypatch):
+    """DNS rebinding: the address that passed the check must be the one we connect to."""
+    seen = {}
+
+    async def resolver(host):
+        return ["93.184.216.34"]
+
+    def handler(request):
+        seen["url_host"] = request.url.host
+        seen["host_header"] = request.headers["host"]
+        seen["sni"] = request.extensions.get("sni_hostname")
+        return httpx.Response(200, text="ok")
+
+    monkeypatch.setattr(fetch, "_resolve", resolver)
+    client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+    await safe_get(client, "https://jobs.example.com/x")
+    assert seen == {
+        "url_host": "93.184.216.34",
+        "host_header": "jobs.example.com",
+        "sni": "jobs.example.com",
+    }

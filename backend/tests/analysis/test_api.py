@@ -105,3 +105,14 @@ async def test_llm_failure_fails_task_without_consuming_quota(
     assert (await _result(client, r.json()["task_id"]))["status"] == "failed"
     usage = (await client.get("/api/me/usage", headers=auth())).json()
     assert usage["items"]["analysis"]["used"] == 0
+
+
+async def test_repeat_request_while_running_returns_the_same_task(
+    client, services, ready_resume, ready_posting
+):
+    services.llm = full_llm()
+    vid, pid = await ready_resume(), await ready_posting()
+    first = await _start(client, vid, pid)
+    second = await _start(client, vid, pid)
+    assert first.status_code == second.status_code == 202
+    assert first.json()["task_id"] == second.json()["task_id"]

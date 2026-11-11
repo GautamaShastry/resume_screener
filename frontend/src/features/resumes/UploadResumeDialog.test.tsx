@@ -25,3 +25,29 @@ test("rejects other file types", async () => {
   );
   expect(screen.getByRole("alert")).toHaveTextContent("PDF or DOCX");
 });
+
+test("double-clicking Upload sends only one request", async () => {
+  const { http, HttpResponse, delay } = await import("msw");
+  const { API, server } = await import("../../test/server");
+  let posts = 0;
+  server.use(
+    http.post(`${API}/api/resumes`, async () => {
+      posts += 1;
+      await delay(200);
+      return HttpResponse.json(
+        { code: "VALIDATION", message: "nope", details: {} },
+        { status: 422 },
+      );
+    }),
+  );
+  renderWithProviders(<UploadResumeDialog trigger="Upload résumé" />);
+  await userEvent.click(screen.getByRole("button", { name: "Upload résumé" }));
+  await userEvent.upload(
+    screen.getByLabelText("Résumé file"),
+    new File(["%PDF-1.4"], "cv.pdf", { type: "application/pdf" }),
+  );
+  const upload = screen.getByRole("button", { name: "Upload" });
+  await userEvent.dblClick(upload);
+  await screen.findByRole("alert");
+  expect(posts).toBe(1);
+});

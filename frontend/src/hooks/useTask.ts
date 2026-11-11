@@ -5,6 +5,9 @@ import { useAuth } from "../auth/AuthProvider";
 import { config } from "../config";
 
 class FatalStreamError extends Error {}
+/** The server closed the stream without a final event (time limit, proxy idle timeout). */
+class StreamClosed extends Error {}
+const RECONNECT_MS = 1000;
 
 export function useTask(taskId: string | null | undefined) {
   const { getToken } = useAuth();
@@ -31,7 +34,11 @@ export function useTask(taskId: string | null | undefined) {
           setTask(JSON.parse(ev.data) as TaskOut);
           if (ev.event === "done" || ev.event === "failed") controller.abort();
         },
+        onclose() {
+          throw new StreamClosed();
+        },
         onerror(err) {
+          if (err instanceof StreamClosed) return RECONNECT_MS; // reconnect; not a failure
           failures += 1;
           if (err instanceof FatalStreamError || failures > 3) {
             setError("Lost connection to the server. Refresh to check the result.");

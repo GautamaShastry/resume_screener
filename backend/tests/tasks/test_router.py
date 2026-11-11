@@ -64,3 +64,26 @@ async def test_events_stream_progress_then_done(client, services):
     await background
     assert events[0] == "progress"
     assert events[-1] == "done"
+
+
+async def test_events_stream_does_not_hold_a_db_connection(client, services):
+    uid = await _user_id(client)
+    task = await _task(services, uid)
+    services.settings.sse_poll_s = 0.2
+    checked_out: list[int] = []
+
+    async def finish():
+        # Sample across several poll cycles; between polls the stream must hold nothing.
+        for _ in range(40):
+            await asyncio.sleep(0.02)
+            checked_out.append(services.engine.pool.checkedout())
+        async with services.sessionmaker() as s:
+            await s.execute(update(Task).where(Task.id == task.id).values(status="succeeded"))
+            await s.commit()
+
+    background = asyncio.create_task(finish())
+    async with client.stream("GET", f"/api/tasks/{task.id}/events", headers=auth()) as r:
+        async for _ in r.aiter_lines():
+            pass
+    await background
+    assert min(checked_out) == 0

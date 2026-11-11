@@ -2,6 +2,8 @@ import asyncio
 import contextlib
 import logging
 import signal
+import time
+import uuid
 
 from opentelemetry import propagate, trace
 
@@ -11,18 +13,24 @@ from app.core.settings import get_settings
 from app.core.telemetry import setup_telemetry
 from app.tasks.queue import QueueMessage
 from app.tasks.registry import TaskRegistry, registry
-from app.tasks.runner import Lease, process_message, recover_stuck
+from app.tasks.runner import Lease, process_message, recover_stuck, renew_lease
 
 VISIBILITY_S = 300
 RENEW_EVERY_S = 120
+RECOVER_EVERY_S = 60
 log = logging.getLogger("app.worker")
 tracer = trace.get_tracer("app.worker")
 
 
 async def _renew(services: Services, lease: Lease) -> None:
+    task_id = uuid.UUID(lease.msg.body["task_id"])
     while True:
         await asyncio.sleep(RENEW_EVERY_S)
-        lease.msg = await services.queue.extend(lease.msg, VISIBILITY_S)
+        try:
+            lease.msg = await services.queue.extend(lease.msg, VISIBILITY_S)
+            await renew_lease(services, task_id)
+        except Exception:  # noqa: BLE001  (a transient error must not end renewal)
+            log.warning("lease_renew_failed", extra={"task_id": str(task_id)}, exc_info=True)
 
 
 async def _run_one(services: Services, reg: TaskRegistry, msg: QueueMessage) -> None:
@@ -48,8 +56,15 @@ async def run_worker(
     poll_interval: float = 2.0,
 ) -> None:
     await recover_stuck(services)
+    last_recovery = time.monotonic()
     running: set[asyncio.Task] = set()
     while not stop.is_set():
+        if time.monotonic() - last_recovery > RECOVER_EVERY_S:
+            last_recovery = time.monotonic()
+            try:
+                await recover_stuck(services)
+            except Exception:  # noqa: BLE001
+                log.exception("recover_stuck_failed")
         free = concurrency - len(running)
         messages = await services.queue.receive(free, VISIBILITY_S) if free > 0 else []
         for msg in messages:

@@ -50,6 +50,8 @@ async def task_events(
 ) -> StreamingResponse:
     await get_task_for_user(session, task_id, user.id)  # 404 before streaming
     user_id = user.id
+    # Dependency teardown runs only after the stream ends; release the pooled connection now.
+    await session.close()
     poll = services.settings.sse_poll_s
 
     async def stream():

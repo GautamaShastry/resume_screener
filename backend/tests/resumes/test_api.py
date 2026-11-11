@@ -153,3 +153,13 @@ async def test_patch_and_delete_removes_blobs(client, services, db_session):
     assert (await db_session.execute(select(ResumeVersion))).first() is None
     with pytest.raises(NotFound):
         await services.blob.get(path)
+
+
+async def test_corrupt_file_fails_once_with_readable_error(client, services, db_session):
+    services.llm = FakeLLM({"LLMResume": resume_llm_response()})
+    started = await _upload(client, data=b"%PDF-1.4\nthis is not really a pdf")
+    await drain(services)
+    task = await db_session.get(Task, uuid.UUID(started["task_id"]))
+    assert (task.status, task.attempts, task.error_code) == ("failed", 1, "UNREADABLE_FILE")
+    version = await db_session.get(ResumeVersion, uuid.UUID(started["resume_version_id"]))
+    assert version.parse_status == "failed"

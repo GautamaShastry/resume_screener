@@ -49,6 +49,7 @@ class Settings(BaseSettings):
     cors_origins: list[str] = ["http://localhost:5173"]
     rate_limit_per_min: int = 60
     sse_poll_s: float = 1.0
+    task_retry_backoff_s: float = 15.0
     applicationinsights_connection_string: str = ""
 
     quota_limits: dict[str, int] = Field(default_factory=lambda: dict(DEFAULT_QUOTAS))
