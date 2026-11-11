@@ -1,0 +1,23 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: hireready
+      POSTGRES_PASSWORD: hireready
+      POSTGRES_DB: hireready
+    ports: ["5433:5432"]
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./backend/scripts/init-test-db.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hireready"]
+      interval: 3s
+      retries: 20
+
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite
+    command: azurite --blobHost 0.0.0.0 --queueHost 0.0.0.0 --skipApiVersionCheck --loose
+    ports: ["10000:10000", "10001:10001"]
+
+volumes:
+  pgdata: {}
