@@ -4,6 +4,8 @@ import { Layout } from "./components/Layout";
 import { HomePage } from "./pages/HomePage";
 import { LandingPage } from "./pages/LandingPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
+import { ResumeDetailPage } from "./pages/ResumeDetailPage";
+import { ResumesPage } from "./pages/ResumesPage";
 
 export function App() {
   return (
@@ -17,6 +19,8 @@ export function App() {
         }
       >
         <Route path="/home" element={<HomePage />} />
+        <Route path="/resumes" element={<ResumesPage />} />
+        <Route path="/resumes/:resumeId" element={<ResumeDetailPage />} />
       </Route>
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
