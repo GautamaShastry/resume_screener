@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.auth.router import router as me_router
 from app.core.errors import install_error_handlers
 from app.core.logging import setup_logging
 from app.core.services import Services, build_services
@@ -33,6 +34,7 @@ def create_app(services: Services, *, close_on_shutdown: bool = False) -> FastAP
     )
     install_error_handlers(app)
     app.include_router(health_router)
+    app.include_router(me_router)
     return app
 
 
